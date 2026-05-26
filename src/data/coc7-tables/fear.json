@@ -1,0 +1,602 @@
+[
+  {
+    "id": 1,
+    "nameZh": "洗澡恐惧症",
+    "nameEn": "Ablutophobia",
+    "description": "对于洗涤或洗澡的恐惧"
+  },
+  {
+    "id": 2,
+    "nameZh": "恐高症",
+    "nameEn": "Acrophobia",
+    "description": "对于身处高处的恐惧"
+  },
+  {
+    "id": 3,
+    "nameZh": "飞行恐惧症",
+    "nameEn": "Aerophobia",
+    "description": "对飞行的恐惧"
+  },
+  {
+    "id": 4,
+    "nameZh": "广场恐惧症",
+    "nameEn": "Agoraphobia",
+    "description": "对于开放的（拥挤）公共场所的恐惧"
+  },
+  {
+    "id": 5,
+    "nameZh": "恐鸡症",
+    "nameEn": "Alektorophobia",
+    "description": "对鸡的恐惧"
+  },
+  {
+    "id": 6,
+    "nameZh": "大蒜恐惧症",
+    "nameEn": "Alliumphobia",
+    "description": "对大蒜的恐惧"
+  },
+  {
+    "id": 7,
+    "nameZh": "乘车恐惧症",
+    "nameEn": "Amaxophobia",
+    "description": "对于乘坐地面载具的恐惧"
+  },
+  {
+    "id": 8,
+    "nameZh": "恐风症",
+    "nameEn": "Ancraophobia",
+    "description": "对风的恐惧"
+  },
+  {
+    "id": 9,
+    "nameZh": "男性恐惧症",
+    "nameEn": "Androphobia",
+    "description": "对于成年男性的恐惧"
+  },
+  {
+    "id": 10,
+    "nameZh": "恐英症",
+    "nameEn": "Anglophobia",
+    "description": "对英格兰或英格兰文化的恐惧"
+  },
+  {
+    "id": 11,
+    "nameZh": "恐花症",
+    "nameEn": "Anthophobia",
+    "description": "对花的恐惧"
+  },
+  {
+    "id": 12,
+    "nameZh": "截肢者恐惧症",
+    "nameEn": "Apotemnophobia",
+    "description": "对截肢者的恐惧"
+  },
+  {
+    "id": 13,
+    "nameZh": "蜘蛛恐惧症",
+    "nameEn": "Arachnophobia",
+    "description": "对蜘蛛的恐惧"
+  },
+  {
+    "id": 14,
+    "nameZh": "闪电恐惧症",
+    "nameEn": "Astraphobia",
+    "description": "对闪电的恐惧"
+  },
+  {
+    "id": 15,
+    "nameZh": "废墟恐惧症",
+    "nameEn": "Atephobia",
+    "description": "对遗迹或残址的恐惧"
+  },
+  {
+    "id": 16,
+    "nameZh": "长笛恐惧症",
+    "nameEn": "Aulophobia",
+    "description": "对长笛的恐惧"
+  },
+  {
+    "id": 17,
+    "nameZh": "细菌恐惧症",
+    "nameEn": "Bacteriophobia",
+    "description": "对细菌的恐惧"
+  },
+  {
+    "id": 18,
+    "nameZh": "导弹/子弹恐惧症",
+    "nameEn": "Ballistophobia",
+    "description": "对导弹或子弹的恐惧"
+  },
+  {
+    "id": 19,
+    "nameZh": "跌落恐惧症",
+    "nameEn": "Basophobia",
+    "description": "对于跌倒或摔落的恐惧"
+  },
+  {
+    "id": 20,
+    "nameZh": "书籍恐惧症",
+    "nameEn": "Bibliophobia",
+    "description": "对书籍的恐惧"
+  },
+  {
+    "id": 21,
+    "nameZh": "植物恐惧症",
+    "nameEn": "Botanophobia",
+    "description": "对植物的恐惧"
+  },
+  {
+    "id": 22,
+    "nameZh": "美女恐惧症",
+    "nameEn": "Caligynephobia",
+    "description": "对美貌女性的恐惧"
+  },
+  {
+    "id": 23,
+    "nameZh": "寒冷恐惧症",
+    "nameEn": "Cheimaphobia",
+    "description": "对寒冷的恐惧"
+  },
+  {
+    "id": 24,
+    "nameZh": "恐钟表症",
+    "nameEn": "Chronomentrophobia",
+    "description": "对于钟表的恐惧"
+  },
+  {
+    "id": 25,
+    "nameZh": "幽闭恐惧症",
+    "nameEn": "Claustrophobia",
+    "description": "对于处在封闭的空间中的恐惧"
+  },
+  {
+    "id": 26,
+    "nameZh": "小丑恐惧症",
+    "nameEn": "Coulrophobia",
+    "description": "对小丑的恐惧"
+  },
+  {
+    "id": 27,
+    "nameZh": "恐犬症",
+    "nameEn": "Cynophobia",
+    "description": "对狗的恐惧"
+  },
+  {
+    "id": 28,
+    "nameZh": "恶魔恐惧症",
+    "nameEn": "Demonophobia",
+    "description": "对邪灵或恶魔的恐惧"
+  },
+  {
+    "id": 29,
+    "nameZh": "人群恐惧症",
+    "nameEn": "Demophobia",
+    "description": "对人群的恐惧"
+  },
+  {
+    "id": 30,
+    "nameZh": "牙科恐惧症①",
+    "nameEn": "Dentophobia",
+    "description": "对牙医的恐惧"
+  },
+  {
+    "id": 31,
+    "nameZh": "丢弃恐惧症",
+    "nameEn": "Disposophobia",
+    "description": "对于丢弃物件的恐惧（贮藏癖）"
+  },
+  {
+    "id": 32,
+    "nameZh": "皮毛恐惧症",
+    "nameEn": "Doraphobia",
+    "description": "对动物皮毛的恐惧"
+  },
+  {
+    "id": 33,
+    "nameZh": "过马路恐惧症",
+    "nameEn": "Dromophobia",
+    "description": "对于过马路的恐惧"
+  },
+  {
+    "id": 34,
+    "nameZh": "教堂恐惧症",
+    "nameEn": "Ecclesiophobia",
+    "description": "对教堂的恐惧"
+  },
+  {
+    "id": 35,
+    "nameZh": "镜子恐惧症",
+    "nameEn": "Eisoptrophobia",
+    "description": "对镜子的恐惧"
+  },
+  {
+    "id": 36,
+    "nameZh": "针尖恐惧症",
+    "nameEn": "Enetophobia",
+    "description": "对针或大头针的恐惧"
+  },
+  {
+    "id": 37,
+    "nameZh": "昆虫恐惧症",
+    "nameEn": "Entomophobia",
+    "description": "对昆虫的恐惧"
+  },
+  {
+    "id": 38,
+    "nameZh": "恐猫症",
+    "nameEn": "Felinophobia",
+    "description": "对猫的恐惧"
+  },
+  {
+    "id": 39,
+    "nameZh": "过桥恐惧症",
+    "nameEn": "Gephyrophobia",
+    "description": "对于过桥的恐惧"
+  },
+  {
+    "id": 40,
+    "nameZh": "恐老症",
+    "nameEn": "Gerontophobia",
+    "description": "对于老年人或变老的恐惧"
+  },
+  {
+    "id": 41,
+    "nameZh": "恐女症",
+    "nameEn": "Gynophobia",
+    "description": "对女性的恐惧"
+  },
+  {
+    "id": 42,
+    "nameZh": "恐血症",
+    "nameEn": "Haemaphobia",
+    "description": "对血的恐惧"
+  },
+  {
+    "id": 43,
+    "nameZh": "宗教罪行恐惧症",
+    "nameEn": "Hamartophobia",
+    "description": "对宗教罪行的恐惧"
+  },
+  {
+    "id": 44,
+    "nameZh": "触摸恐惧症",
+    "nameEn": "Haphophobia",
+    "description": "对于被触摸的恐惧"
+  },
+  {
+    "id": 45,
+    "nameZh": "爬虫恐惧症",
+    "nameEn": "Herpetophobia",
+    "description": "对爬行动物的恐惧"
+  },
+  {
+    "id": 46,
+    "nameZh": "迷雾恐惧症",
+    "nameEn": "Homichlophobia",
+    "description": "对雾的恐惧"
+  },
+  {
+    "id": 47,
+    "nameZh": "火器恐惧症",
+    "nameEn": "Hoplophobia",
+    "description": "对火器的恐惧"
+  },
+  {
+    "id": 48,
+    "nameZh": "恐水症",
+    "nameEn": "Hydrophobia",
+    "description": "对水的恐惧"
+  },
+  {
+    "id": 49,
+    "nameZh": "催眠恐惧症①",
+    "nameEn": "Hypnophobia",
+    "description": "对于睡眠或被催眠的恐惧"
+  },
+  {
+    "id": 50,
+    "nameZh": "白袍恐惧症",
+    "nameEn": "Iatrophobia",
+    "description": "对医生的恐惧"
+  },
+  {
+    "id": 51,
+    "nameZh": "鱼类恐惧症",
+    "nameEn": "Ichthyophobia",
+    "description": "对鱼的恐惧"
+  },
+  {
+    "id": 52,
+    "nameZh": "蟑螂恐惧症",
+    "nameEn": "Katsaridaphobia",
+    "description": "对蟑螂的恐惧"
+  },
+  {
+    "id": 53,
+    "nameZh": "雷鸣恐惧症",
+    "nameEn": "Keraunophobia",
+    "description": "对雷声的恐惧"
+  },
+  {
+    "id": 54,
+    "nameZh": "蔬菜恐惧症",
+    "nameEn": "Lachanophobia",
+    "description": "对蔬菜的恐惧"
+  },
+  {
+    "id": 55,
+    "nameZh": "噪音恐惧症",
+    "nameEn": "Ligyrophobia",
+    "description": "对刺耳噪音的恐惧"
+  },
+  {
+    "id": 56,
+    "nameZh": "恐湖症",
+    "nameEn": "Limnophobia",
+    "description": "对湖泊的恐惧"
+  },
+  {
+    "id": 57,
+    "nameZh": "机械恐惧症",
+    "nameEn": "Mechanophobia",
+    "description": "对机器或机械的恐惧"
+  },
+  {
+    "id": 58,
+    "nameZh": "巨物恐惧症",
+    "nameEn": "Megalophobia",
+    "description": "对于庞大物件的恐惧"
+  },
+  {
+    "id": 59,
+    "nameZh": "捆绑恐惧症",
+    "nameEn": "Merinthophobia",
+    "description": "对于被捆绑或紧缚的恐惧"
+  },
+  {
+    "id": 60,
+    "nameZh": "流星恐惧症",
+    "nameEn": "Meteorophobia",
+    "description": "对流星或陨石的恐惧"
+  },
+  {
+    "id": 61,
+    "nameZh": "孤独恐惧症",
+    "nameEn": "Monophobia",
+    "description": "对于一人独处的恐惧"
+  },
+  {
+    "id": 62,
+    "nameZh": "不洁恐惧症",
+    "nameEn": "Mysophobia",
+    "description": "对污垢或污染的恐惧"
+  },
+  {
+    "id": 63,
+    "nameZh": "黏液恐惧症",
+    "nameEn": "Myxophobia",
+    "description": "对黏液（史莱姆）的恐惧"
+  },
+  {
+    "id": 64,
+    "nameZh": "尸体恐惧症",
+    "nameEn": "Necrophobia",
+    "description": "对尸体的恐惧"
+  },
+  {
+    "id": 65,
+    "nameZh": "数字 8 恐惧症",
+    "nameEn": "Octophobia",
+    "description": "对数字 8 的恐惧"
+  },
+  {
+    "id": 66,
+    "nameZh": "恐牙症",
+    "nameEn": "Odontophobia",
+    "description": "对牙齿的恐惧"
+  },
+  {
+    "id": 67,
+    "nameZh": "恐梦症",
+    "nameEn": "Oneirophobia",
+    "description": "对梦境的恐惧"
+  },
+  {
+    "id": 68,
+    "nameZh": "称呼恐惧症",
+    "nameEn": "Onomatophobia",
+    "description": "对于特定词语的恐惧"
+  },
+  {
+    "id": 69,
+    "nameZh": "恐蛇症",
+    "nameEn": "Ophidiophobia",
+    "description": "对蛇的恐惧"
+  },
+  {
+    "id": 70,
+    "nameZh": "恐鸟症",
+    "nameEn": "Ornithophobia",
+    "description": "对鸟的恐惧"
+  },
+  {
+    "id": 71,
+    "nameZh": "寄生虫恐惧症",
+    "nameEn": "Parasitophobia",
+    "description": "对寄生虫的恐惧"
+  },
+  {
+    "id": 72,
+    "nameZh": "人偶恐惧症",
+    "nameEn": "Pediophobia",
+    "description": "对人偶的恐惧"
+  },
+  {
+    "id": 73,
+    "nameZh": "吞咽恐惧症",
+    "nameEn": "Phagophobia",
+    "description": "对于吞咽或被吞咽的恐惧"
+  },
+  {
+    "id": 74,
+    "nameZh": "药物恐惧症",
+    "nameEn": "Pharmacophobia",
+    "description": "对药物的恐惧"
+  },
+  {
+    "id": 75,
+    "nameZh": "幽灵恐惧症",
+    "nameEn": "Phasmophobia",
+    "description": "对鬼魂的恐惧"
+  },
+  {
+    "id": 76,
+    "nameZh": "日光恐惧症",
+    "nameEn": "Phenogophobia",
+    "description": "对日光的恐惧"
+  },
+  {
+    "id": 77,
+    "nameZh": "胡须恐惧症",
+    "nameEn": "Pogonophobia",
+    "description": "对胡须的恐惧"
+  },
+  {
+    "id": 78,
+    "nameZh": "河流恐惧症",
+    "nameEn": "Potamophobia",
+    "description": "对河流的恐惧"
+  },
+  {
+    "id": 79,
+    "nameZh": "酒精恐惧症",
+    "nameEn": "Potophobia",
+    "description": "对酒或酒精的恐惧"
+  },
+  {
+    "id": 80,
+    "nameZh": "恐火症",
+    "nameEn": "Pyrophobia",
+    "description": "对火的恐惧"
+  },
+  {
+    "id": 81,
+    "nameZh": "魔法恐惧症",
+    "nameEn": "Rhabdophobia",
+    "description": "对魔法的恐惧"
+  },
+  {
+    "id": 82,
+    "nameZh": "黑暗恐惧症",
+    "nameEn": "Scotophobia",
+    "description": "对黑暗或夜晚的恐惧"
+  },
+  {
+    "id": 83,
+    "nameZh": "恐月症",
+    "nameEn": "Selenophobia",
+    "description": "对月亮的恐惧"
+  },
+  {
+    "id": 84,
+    "nameZh": "火车恐惧症",
+    "nameEn": "Siderodromophobia",
+    "description": "对于乘坐火车出行的恐惧"
+  },
+  {
+    "id": 85,
+    "nameZh": "恐星症",
+    "nameEn": "Siderophobia",
+    "description": "对星星的恐惧"
+  },
+  {
+    "id": 86,
+    "nameZh": "狭室恐惧症",
+    "nameEn": "Stenophobia",
+    "description": "对狭小物件或地点的恐惧"
+  },
+  {
+    "id": 87,
+    "nameZh": "对称恐惧症",
+    "nameEn": "Symmetrophobia",
+    "description": "对对称的恐惧"
+  },
+  {
+    "id": 88,
+    "nameZh": "活埋恐惧症",
+    "nameEn": "Taphephobia",
+    "description": "对于被活埋或墓地的恐惧"
+  },
+  {
+    "id": 89,
+    "nameZh": "公牛恐惧症",
+    "nameEn": "Taurophobia",
+    "description": "对公牛的恐惧"
+  },
+  {
+    "id": 90,
+    "nameZh": "电话恐惧症",
+    "nameEn": "Telephonophobia",
+    "description": "对电话的恐惧"
+  },
+  {
+    "id": 91,
+    "nameZh": "怪物恐惧症①",
+    "nameEn": "Teratophobia",
+    "description": "对怪物的恐惧"
+  },
+  {
+    "id": 92,
+    "nameZh": "深海恐惧症",
+    "nameEn": "Thalassophobia",
+    "description": "对海洋的恐惧"
+  },
+  {
+    "id": 93,
+    "nameZh": "手术恐惧症",
+    "nameEn": "Tomophobia",
+    "description": "对外科手术的恐惧"
+  },
+  {
+    "id": 94,
+    "nameZh": "十三恐惧症",
+    "nameEn": "Triskadekaphobia",
+    "description": "对数字 13 的恐惧症"
+  },
+  {
+    "id": 95,
+    "nameZh": "衣物恐惧症",
+    "nameEn": "Vestiphobia",
+    "description": "对衣物的恐惧"
+  },
+  {
+    "id": 96,
+    "nameZh": "女巫恐惧症",
+    "nameEn": "Wiccaphobia",
+    "description": "对女巫与巫术的恐惧"
+  },
+  {
+    "id": 97,
+    "nameZh": "黄色恐惧症",
+    "nameEn": "Xanthophobia",
+    "description": "对黄色或“黄”字的恐惧"
+  },
+  {
+    "id": 98,
+    "nameZh": "外语恐惧症",
+    "nameEn": "Xenoglossophobia",
+    "description": "对外语的恐惧"
+  },
+  {
+    "id": 99,
+    "nameZh": "异域恐惧症",
+    "nameEn": "Xenophobia",
+    "description": "对陌生人或外国人的恐惧"
+  },
+  {
+    "id": 100,
+    "nameZh": "动物恐惧症",
+    "nameEn": "Zoophobia",
+    "description": "对动物的恐惧"
+  }
+]

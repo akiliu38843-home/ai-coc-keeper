@@ -42,6 +42,14 @@ export interface Condition {
   type: ConditionType;
   source: string;       // 哪个场景/检定触发
   appliedAt: number;    // unix ms
+  /** 长期心智失常时附加的具体 phobia/mania（来自 coc7-tables）*/
+  insanityDetail?: {
+    kind: 'phobia' | 'mania';
+    id: number;          // 1-100
+    nameZh: string;
+    nameEn: string;
+    description: string;
+  };
 }
 
 export interface Character {

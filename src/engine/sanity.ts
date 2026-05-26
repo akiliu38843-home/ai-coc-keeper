@@ -13,13 +13,16 @@ import type {
   SanityCheckParams,
   SanityCheckResult,
 } from '../types/rules.js';
-import type { Character } from '../types/character.js';
+import type { Character, Condition } from '../types/character.js';
 import type { Rng } from './rng.js';
 import { rollDice, rollD100 } from './dice.js';
+import { rollInsanity } from './insanity-tables.js';
 
 export interface SanityApplyOptions {
   /** 用于跟踪"单日累计损失"的 sanity 起始值（决定 1/5 阈值）*/
   startOfDaySanity?: number;
+  /** 长期心智失常时用的 RNG，没传就不随机 phobia/mania */
+  rng?: Rng;
 }
 
 /**
@@ -97,11 +100,23 @@ export function applySanityLoss(
   const triggersIndef = result.actualLoss >= indefThreshold && indefThreshold > 0;
 
   if (triggersIndef) {
-    character.conditions.push({
+    const cond: Condition = {
       type: 'indef_insanity',
       source: result.reason,
       appliedAt: result.ts,
-    });
+    };
+    // 如果给了 RNG，从海豹的 100 项表 roll 一条具体 phobia/mania
+    if (opts.rng) {
+      const insanity = rollInsanity(opts.rng);
+      cond.insanityDetail = {
+        kind: insanity.kind,
+        id: insanity.entry.id,
+        nameZh: insanity.entry.nameZh,
+        nameEn: insanity.entry.nameEn,
+        description: insanity.entry.description,
+      };
+    }
+    character.conditions.push(cond);
   }
 
   return { triggersIndefInsanity: triggersIndef };

@@ -1,0 +1,602 @@
+[
+  {
+    "id": 1,
+    "nameZh": "沐浴癖",
+    "nameEn": "Ablutomania",
+    "description": "执着于清洗自己"
+  },
+  {
+    "id": 2,
+    "nameZh": "犹豫癖",
+    "nameEn": "Aboulomania",
+    "description": "病态地犹豫不定"
+  },
+  {
+    "id": 3,
+    "nameZh": "喜暗狂",
+    "nameEn": "Achluomania",
+    "description": "对黑暗的过度热爱"
+  },
+  {
+    "id": 4,
+    "nameZh": "喜高狂",
+    "nameEn": "Acromaniaheights",
+    "description": "狂热迷恋高处"
+  },
+  {
+    "id": 5,
+    "nameZh": "亲切癖",
+    "nameEn": "Agathomania",
+    "description": "病态地对他人友好"
+  },
+  {
+    "id": 6,
+    "nameZh": "喜旷症",
+    "nameEn": "Agromania",
+    "description": "强烈地倾向于待在开阔空间中"
+  },
+  {
+    "id": 7,
+    "nameZh": "喜尖狂",
+    "nameEn": "Aichmomania",
+    "description": "痴迷于尖锐或锋利的物体"
+  },
+  {
+    "id": 8,
+    "nameZh": "恋猫狂",
+    "nameEn": "Ailuromania",
+    "description": "近乎病态地对猫友善"
+  },
+  {
+    "id": 9,
+    "nameZh": "疼痛癖",
+    "nameEn": "Algomania",
+    "description": "痴迷于疼痛"
+  },
+  {
+    "id": 10,
+    "nameZh": "喜蒜狂",
+    "nameEn": "Alliomania",
+    "description": "痴迷于大蒜"
+  },
+  {
+    "id": 11,
+    "nameZh": "乘车癖",
+    "nameEn": "Amaxomania",
+    "description": "痴迷于乘坐车辆"
+  },
+  {
+    "id": 12,
+    "nameZh": "欣快癖",
+    "nameEn": "Amenomania",
+    "description": "不正常地感到喜悦"
+  },
+  {
+    "id": 13,
+    "nameZh": "喜花狂",
+    "nameEn": "Anthomania",
+    "description": "痴迷于花朵"
+  },
+  {
+    "id": 14,
+    "nameZh": "计算癖",
+    "nameEn": "Arithmomania",
+    "description": "狂热地痴迷于数字"
+  },
+  {
+    "id": 15,
+    "nameZh": "消费癖",
+    "nameEn": "Asoticamania",
+    "description": "鲁莽冲动地消费"
+  },
+  {
+    "id": 16,
+    "nameZh": "隐居癖*",
+    "nameEn": "Automania",
+    "description": "过度地热爱独自隐居。（原文如此，存疑，Automania 实际上是恋车癖）"
+  },
+  {
+    "id": 17,
+    "nameZh": "芭蕾癖",
+    "nameEn": "Balletmania",
+    "description": "痴迷于芭蕾舞"
+  },
+  {
+    "id": 18,
+    "nameZh": "窃书癖",
+    "nameEn": "Biliokleptomania",
+    "description": "无法克制偷窃书籍的冲动"
+  },
+  {
+    "id": 19,
+    "nameZh": "恋书狂",
+    "nameEn": "Bibliomania",
+    "description": "痴迷于书籍和/或阅读"
+  },
+  {
+    "id": 20,
+    "nameZh": "磨牙癖",
+    "nameEn": "Bruxomania",
+    "description": "无法克制磨牙的冲动"
+  },
+  {
+    "id": 21,
+    "nameZh": "灵臆症",
+    "nameEn": "Cacodemomania",
+    "description": "病态地坚信自己已被一个邪恶的灵体占据"
+  },
+  {
+    "id": 22,
+    "nameZh": "美貌狂",
+    "nameEn": "Callomania",
+    "description": "痴迷于自身的美貌"
+  },
+  {
+    "id": 23,
+    "nameZh": "地图狂",
+    "nameEn": "Cartacoethes",
+    "description": "在何时何处都无法控制查阅地图的冲动"
+  },
+  {
+    "id": 24,
+    "nameZh": "跳跃狂",
+    "nameEn": "Catapedamania",
+    "description": "痴迷于从高处跳下"
+  },
+  {
+    "id": 25,
+    "nameZh": "喜冷症",
+    "nameEn": "Cheimatomania",
+    "description": "对寒冷或寒冷的物体的反常喜爱"
+  },
+  {
+    "id": 26,
+    "nameZh": "舞蹈狂",
+    "nameEn": "Choreomania",
+    "description": "无法控制地起舞或发颤"
+  },
+  {
+    "id": 27,
+    "nameZh": "恋床癖",
+    "nameEn": "Clinomania",
+    "description": "过度地热爱待在床上"
+  },
+  {
+    "id": 28,
+    "nameZh": "恋墓狂",
+    "nameEn": "Coimetormania",
+    "description": "痴迷于墓地"
+  },
+  {
+    "id": 29,
+    "nameZh": "色彩狂",
+    "nameEn": "Coloromania",
+    "description": "痴迷于某种颜色"
+  },
+  {
+    "id": 30,
+    "nameZh": "小丑狂",
+    "nameEn": "Coulromania",
+    "description": "痴迷于小丑"
+  },
+  {
+    "id": 31,
+    "nameZh": "恐惧狂",
+    "nameEn": "Countermania",
+    "description": "执着于经历恐怖的场面"
+  },
+  {
+    "id": 32,
+    "nameZh": "杀戮癖",
+    "nameEn": "Dacnomania",
+    "description": "痴迷于杀戮"
+  },
+  {
+    "id": 33,
+    "nameZh": "魔臆症",
+    "nameEn": "Demonomania",
+    "description": "病态地坚信自己已被恶魔附身"
+  },
+  {
+    "id": 34,
+    "nameZh": "抓挠癖",
+    "nameEn": "Dermatillomania",
+    "description": "执着于抓挠自己的皮肤"
+  },
+  {
+    "id": 35,
+    "nameZh": "正义狂",
+    "nameEn": "Dikemania",
+    "description": "痴迷于目睹正义被伸张"
+  },
+  {
+    "id": 36,
+    "nameZh": "嗜酒狂",
+    "nameEn": "Dipsomania",
+    "description": "反常地渴求酒精"
+  },
+  {
+    "id": 37,
+    "nameZh": "毛皮狂",
+    "nameEn": "Doramania",
+    "description": "痴迷于拥有毛皮。（存疑）"
+  },
+  {
+    "id": 38,
+    "nameZh": "赠物癖",
+    "nameEn": "Doromania",
+    "description": "痴迷于赠送礼物"
+  },
+  {
+    "id": 39,
+    "nameZh": "漂泊症",
+    "nameEn": "Drapetomania",
+    "description": "执着于逃离"
+  },
+  {
+    "id": 40,
+    "nameZh": "漫游癖",
+    "nameEn": "Ecdemiomania",
+    "description": "执着于四处漫游"
+  },
+  {
+    "id": 41,
+    "nameZh": "自恋狂",
+    "nameEn": "Egomania",
+    "description": "近乎病态地以自我为中心或自我崇拜"
+  },
+  {
+    "id": 42,
+    "nameZh": "职业狂",
+    "nameEn": "Empleomania",
+    "description": "对于工作的无尽病态渴求"
+  },
+  {
+    "id": 43,
+    "nameZh": "臆罪症",
+    "nameEn": "Enosimania",
+    "description": "病态地坚信自己带有罪孽"
+  },
+  {
+    "id": 44,
+    "nameZh": "学识狂",
+    "nameEn": "Epistemomania",
+    "description": "痴迷于获取学识"
+  },
+  {
+    "id": 45,
+    "nameZh": "静止癖",
+    "nameEn": "Eremiomania",
+    "description": "执着于保持安静"
+  },
+  {
+    "id": 46,
+    "nameZh": "乙醚上瘾",
+    "nameEn": "Etheromania",
+    "description": "渴求乙醚"
+  },
+  {
+    "id": 47,
+    "nameZh": "求婚狂",
+    "nameEn": "Gamomania",
+    "description": "痴迷于进行奇特的求婚"
+  },
+  {
+    "id": 48,
+    "nameZh": "狂笑癖",
+    "nameEn": "Geliomania",
+    "description": "无法自制地，强迫性的大笑"
+  },
+  {
+    "id": 49,
+    "nameZh": "巫术狂",
+    "nameEn": "Goetomania",
+    "description": "痴迷于女巫与巫术"
+  },
+  {
+    "id": 50,
+    "nameZh": "写作癖",
+    "nameEn": "Graphomania",
+    "description": "痴迷于将每一件事写下来"
+  },
+  {
+    "id": 51,
+    "nameZh": "裸体狂",
+    "nameEn": "Gymnomania",
+    "description": "执着于裸露身体"
+  },
+  {
+    "id": 52,
+    "nameZh": "妄想狂",
+    "nameEn": "Habromania",
+    "description": "近乎病态地充满愉快的妄想（而不顾现实状况如何）"
+  },
+  {
+    "id": 53,
+    "nameZh": "蠕虫狂",
+    "nameEn": "Helminthomania",
+    "description": "过度地喜爱蠕虫"
+  },
+  {
+    "id": 54,
+    "nameZh": "枪械狂",
+    "nameEn": "Hoplomania",
+    "description": "痴迷于火器"
+  },
+  {
+    "id": 55,
+    "nameZh": "饮水狂",
+    "nameEn": "Hydromania",
+    "description": "反常地渴求水分"
+  },
+  {
+    "id": 56,
+    "nameZh": "喜鱼癖",
+    "nameEn": "Ichthyomania",
+    "description": "痴迷于鱼类"
+  },
+  {
+    "id": 57,
+    "nameZh": "图标狂",
+    "nameEn": "Iconomania",
+    "description": "痴迷于图标与肖像"
+  },
+  {
+    "id": 58,
+    "nameZh": "偶像狂",
+    "nameEn": "Idolomania",
+    "description": "痴迷于甚至愿献身于某个偶像"
+  },
+  {
+    "id": 59,
+    "nameZh": "信息狂",
+    "nameEn": "Infomania",
+    "description": "痴迷于积累各种信息与资讯"
+  },
+  {
+    "id": 60,
+    "nameZh": "射击狂",
+    "nameEn": "Klazomania",
+    "description": "反常地执着于射击"
+  },
+  {
+    "id": 61,
+    "nameZh": "偷窃癖",
+    "nameEn": "Kleptomania",
+    "description": "反常地执着于偷窃"
+  },
+  {
+    "id": 62,
+    "nameZh": "噪音癖",
+    "nameEn": "Ligyromania",
+    "description": "无法自制地执着于制造响亮或刺耳的噪音"
+  },
+  {
+    "id": 63,
+    "nameZh": "喜线癖",
+    "nameEn": "Linonomania",
+    "description": "痴迷于线绳"
+  },
+  {
+    "id": 64,
+    "nameZh": "彩票狂",
+    "nameEn": "Lotterymania",
+    "description": "极端地执着于购买彩票"
+  },
+  {
+    "id": 65,
+    "nameZh": "抑郁症",
+    "nameEn": "Lypemania",
+    "description": "近乎病态的重度抑郁倾向"
+  },
+  {
+    "id": 66,
+    "nameZh": "巨石狂",
+    "nameEn": "Megalithomania",
+    "description": "当站在石环中或立起的巨石旁时，就会近乎病态地写出各种奇怪的创意"
+  },
+  {
+    "id": 67,
+    "nameZh": "旋律狂",
+    "nameEn": "Melomania",
+    "description": "痴迷于音乐或一段特定的旋律"
+  },
+  {
+    "id": 68,
+    "nameZh": "作诗癖",
+    "nameEn": "Metromania",
+    "description": "无法抑制地想要不停作诗"
+  },
+  {
+    "id": 69,
+    "nameZh": "憎恨癖",
+    "nameEn": "Misomania",
+    "description": "憎恨一切事物，痴迷于憎恨某个事物或团体"
+  },
+  {
+    "id": 70,
+    "nameZh": "偏执狂",
+    "nameEn": "Monomania",
+    "description": "近乎病态地痴迷与专注某个特定的想法或创意"
+  },
+  {
+    "id": 71,
+    "nameZh": "夸大癖",
+    "nameEn": "Mythomania",
+    "description": "以一种近乎病态的程度说谎或夸大事物"
+  },
+  {
+    "id": 72,
+    "nameZh": "臆想症",
+    "nameEn": "Nosomania",
+    "description": "妄想自己正在被某种臆想出的疾病折磨"
+  },
+  {
+    "id": 73,
+    "nameZh": "记录癖",
+    "nameEn": "Notomania",
+    "description": "执着于记录一切事物（例如摄影）"
+  },
+  {
+    "id": 74,
+    "nameZh": "恋名狂",
+    "nameEn": "Onomamania",
+    "description": "痴迷于名字（人物的、地点的、事物的）"
+  },
+  {
+    "id": 75,
+    "nameZh": "称名癖",
+    "nameEn": "Onomatomania",
+    "description": "无法抑制地不断重复某个词语的冲动"
+  },
+  {
+    "id": 76,
+    "nameZh": "剔指癖",
+    "nameEn": "Onychotillomania",
+    "description": "执着于剔指甲"
+  },
+  {
+    "id": 77,
+    "nameZh": "恋食癖",
+    "nameEn": "Opsomania",
+    "description": "对某种食物的病态热爱"
+  },
+  {
+    "id": 78,
+    "nameZh": "抱怨癖",
+    "nameEn": "Paramania",
+    "description": "一种在抱怨时产生的近乎病态的愉悦感"
+  },
+  {
+    "id": 79,
+    "nameZh": "面具狂",
+    "nameEn": "Personamania",
+    "description": "执着于佩戴面具"
+  },
+  {
+    "id": 80,
+    "nameZh": "幽灵狂",
+    "nameEn": "Phasmomania",
+    "description": "痴迷于幽灵"
+  },
+  {
+    "id": 81,
+    "nameZh": "谋杀癖",
+    "nameEn": "Phonomania",
+    "description": "病态的谋杀倾向"
+  },
+  {
+    "id": 82,
+    "nameZh": "渴光癖",
+    "nameEn": "Photomania",
+    "description": "对光的病态渴求"
+  },
+  {
+    "id": 83,
+    "nameZh": "背德癖",
+    "nameEn": "Planomania",
+    "description": "病态地渴求违背社会道德（原文如此，存疑，Planomania 实际上是漂泊症）"
+  },
+  {
+    "id": 84,
+    "nameZh": "求财癖",
+    "nameEn": "Plutomania",
+    "description": "对财富的强迫性的渴望"
+  },
+  {
+    "id": 85,
+    "nameZh": "欺骗狂",
+    "nameEn": "Pseudomania",
+    "description": "无法抑制的执着于撒谎"
+  },
+  {
+    "id": 86,
+    "nameZh": "纵火狂",
+    "nameEn": "Pyromania",
+    "description": "执着于纵火"
+  },
+  {
+    "id": 87,
+    "nameZh": "提问狂",
+    "nameEn": "Questiong-Asking Mania",
+    "description": "执着于提问"
+  },
+  {
+    "id": 88,
+    "nameZh": "挖鼻癖",
+    "nameEn": "Rhinotillexomania",
+    "description": "执着于挖鼻子"
+  },
+  {
+    "id": 89,
+    "nameZh": "涂鸦癖",
+    "nameEn": "Scribbleomania",
+    "description": "沉迷于涂鸦"
+  },
+  {
+    "id": 90,
+    "nameZh": "列车狂",
+    "nameEn": "Siderodromomania",
+    "description": "认为火车或类似的依靠轨道交通的旅行方式充满魅力"
+  },
+  {
+    "id": 91,
+    "nameZh": "臆智症",
+    "nameEn": "Sophomania",
+    "description": "臆想自己拥有难以置信的智慧"
+  },
+  {
+    "id": 92,
+    "nameZh": "科技狂",
+    "nameEn": "Technomania",
+    "description": "痴迷于新的科技"
+  },
+  {
+    "id": 93,
+    "nameZh": "臆咒狂",
+    "nameEn": "Thanatomania",
+    "description": "坚信自己已被某种死亡魔法所诅咒"
+  },
+  {
+    "id": 94,
+    "nameZh": "臆神狂",
+    "nameEn": "Theomania",
+    "description": "坚信自己是一位神灵"
+  },
+  {
+    "id": 95,
+    "nameZh": "抓挠癖",
+    "nameEn": "Titillomaniac",
+    "description": "抓挠自己的强迫倾向"
+  },
+  {
+    "id": 96,
+    "nameZh": "手术狂",
+    "nameEn": "Tomomania",
+    "description": "对进行手术的不正常爱好"
+  },
+  {
+    "id": 97,
+    "nameZh": "拔毛癖",
+    "nameEn": "Trichotillomania",
+    "description": "执着于拔下自己的头发"
+  },
+  {
+    "id": 98,
+    "nameZh": "臆盲症",
+    "nameEn": "Typhlomania",
+    "description": "病理性的失明"
+  },
+  {
+    "id": 99,
+    "nameZh": "嗜外狂",
+    "nameEn": "Xenomania",
+    "description": "痴迷于异国的事物"
+  },
+  {
+    "id": 100,
+    "nameZh": "喜兽癖",
+    "nameEn": "Zoomania",
+    "description": "对待动物的态度近乎疯狂地友好"
+  }
+]
