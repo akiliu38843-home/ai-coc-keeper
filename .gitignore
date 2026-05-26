@@ -1,0 +1,24 @@
+# 私有测试本子 — 绝不入 git
+.test-scenarios/
+
+# WebGAL upstream clone（保留为参考，未来 fork 改造时重新评估）
+external/WebGAL/
+
+# Node / TypeScript
+node_modules/
+dist/
+build/
+*.log
+.DS_Store
+.env
+.env.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*~
+
+# 临时文件
+*.tmp
+*.cache
