@@ -15,6 +15,55 @@ import {
   type BuildSceneContextParams,
 } from './prompts.js';
 
+// ─── SuggestedAction 类型 (suggestActions 输出) ──────
+
+import type { Difficulty as DifficultyTy } from '../types/rules.js';
+
+export type SuggestedAction =
+  | { kind: 'simple'; label: string; resultNarrate: string }
+  | {
+      kind: 'check';
+      label: string;
+      check: { skill: string; difficulty: DifficultyTy };
+      successNarrate: string;
+      failNarrate: string;
+    };
+
+function parseSuggestedAction(raw: unknown): SuggestedAction[] {
+  if (typeof raw !== 'object' || raw === null) return [];
+  const o = raw as Record<string, unknown>;
+  if (typeof o['label'] !== 'string') return [];
+  const label = o['label'] as string;
+
+  // 含 check 字段 → check 型
+  const check = o['check'];
+  if (
+    typeof check === 'object' && check !== null &&
+    typeof (check as Record<string, unknown>)['skill'] === 'string' &&
+    typeof (check as Record<string, unknown>)['difficulty'] === 'string' &&
+    ['normal', 'hard', 'extreme'].includes((check as Record<string, unknown>)['difficulty'] as string) &&
+    typeof o['successNarrate'] === 'string' &&
+    typeof o['failNarrate'] === 'string'
+  ) {
+    return [{
+      kind: 'check',
+      label,
+      check: {
+        skill: (check as Record<string, unknown>)['skill'] as string,
+        difficulty: (check as Record<string, unknown>)['difficulty'] as DifficultyTy,
+      },
+      successNarrate: o['successNarrate'] as string,
+      failNarrate: o['failNarrate'] as string,
+    }];
+  }
+
+  // 普通行动
+  if (typeof o['resultNarrate'] === 'string') {
+    return [{ kind: 'simple', label, resultNarrate: o['resultNarrate'] as string }];
+  }
+  return [];
+}
+
 // ─── LlmAction 类型 ──────────────────────────────────
 
 export type LlmAction =
@@ -178,22 +227,28 @@ export class LlmAdapter {
   async suggestActions(params: {
     sceneContext: string;
     count?: number;
-  }): Promise<Array<{ label: string; resultNarrate: string }>> {
+  }): Promise<Array<SuggestedAction>> {
     const count = params.count ?? 4;
-    const msg = `请基于上面那个场景, 生成 ${count} 个"玩家可能想做的小行动" + 每个的结果叙事。
+    const msg = `请基于上面那个场景, 生成 ${count} 个"玩家可能想做的小行动" + 结果叙事。
 
 【硬约束】
 1. 行动**不能跳场景** —— 只在当前 scene 内的探索 / 观察 / 简短对话 / 尝试小动作
-2. 不能触发离开场景的逻辑 (那是 exits 的事, 这里别管)
-3. 不能丢骰子 / 不能解决场景核心谜题 (那是真版玩家行动 + 引擎检定要做的)
-4. 行动 label ≤ 8 个汉字, 像 "查抽屉" / "看照片" / "敲墙壁"
-5. resultNarrate 是 1-3 句叙事, 描述玩家做了之后看到/听到/感受到的东西
-6. 不要给玩家直接揭示关键剧情, 用暗示 / 氛围渲染填充
+2. 行动 label ≤ 8 个汉字, 像 "查抽屉" / "看照片" / "撬抽屉"
+3. **如果这个行动需要技能 / 运气 / 体能** (撬锁/侦查暗格/聆听细微声音/说服 NPC/快速躲避/识别异常) —— 加 check 字段：
+   - skill: 用小写英文 (spot_hidden / listen / locksmith / psychology / persuade / sneak / climb / first_aid / occult / library_use / brawl / dodge ...)
+   - difficulty: normal / hard / extreme
+   - successNarrate: 检定成功后的叙事 (1-3 句, 透露更多线索 / 揭示真相)
+   - failNarrate: 检定失败后的叙事 (1-3 句, 模糊 / 误导 / 错过线索 / 出小事故)
+4. 如果是不需要技能的纯观察 / 闻气味 / 摸表面 —— 不加 check, 只用 resultNarrate
+5. **永远不要在 narrate 里写"投出 X" / "你成功了" / "你失败了"** —— 引擎会丢骰子, 你只写叙事的 atmosphere
+6. 4 个行动里建议有 1-2 个带 check, 让玩家感到"决策有重量"
 
 【输出 JSON schema】 (严格 JSON, 不带 markdown wrapper)
 {
   "actions": [
-    { "label": "短按钮文字", "resultNarrate": "结果叙事" },
+    { "label": "看照片", "resultNarrate": "那两个被挖空的眼洞..." },
+    { "label": "撬抽屉", "check": { "skill": "locksmith", "difficulty": "hard" },
+      "successNarrate": "锁芯咔哒一声打开, 里面...", "failNarrate": "撬棒滑脱..." },
     ...
   ]
 }`;
@@ -211,13 +266,9 @@ export class LlmAdapter {
       .replace(/\s*```\s*$/, '')
       .trim();
     try {
-      const parsed = JSON.parse(cleaned) as { actions?: Array<{ label?: string; resultNarrate?: string }> };
+      const parsed = JSON.parse(cleaned) as { actions?: unknown };
       if (!Array.isArray(parsed.actions)) return [];
-      return parsed.actions
-        .filter((a): a is { label: string; resultNarrate: string } =>
-          typeof a.label === 'string' && typeof a.resultNarrate === 'string'
-        )
-        .slice(0, count);
+      return parsed.actions.flatMap((raw: unknown) => parseSuggestedAction(raw)).slice(0, count);
     } catch {
       return [];
     }

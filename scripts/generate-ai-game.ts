@@ -17,6 +17,8 @@ import { OpenAICompatibleProvider } from '../src/llm/openai-compatible.js';
 import { LlmAdapter, type LlmAction } from '../src/llm/adapter.js';
 import { InMemoryNarrativeState } from '../src/engine/in-memory-narrative-state.js';
 import { recomputeDerivedStats } from '../src/types/character.js';
+import { rollCheck } from '../src/engine/skill-check.js';
+import { DefaultRng } from '../src/engine/rng.js';
 import type { Character } from '../src/types/character.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -37,6 +39,19 @@ const model = process.env['LLM_MODEL'] ?? 'gpt-5.4-mini';
 if (!baseUrl || !apiKey) {
   console.error('❌ 缺 LLM_BASE_URL / LLM_API_KEY');
   process.exit(1);
+}
+
+/** V0: 默认技能值表 (后续 W9 调查员向导生成真实角色卡时替换) */
+function skillTarget(skill: string): number {
+  const presets: Record<string, number> = {
+    spot_hidden: 60, listen: 50, library_use: 70, psychology: 50,
+    locksmith: 30, dodge: 30, brawl: 60, sneak: 40, stealth: 40,
+    persuade: 50, fast_talk: 40, charm: 40, intimidate: 40,
+    climb: 40, first_aid: 50, medicine: 30, occult: 30,
+    drive_auto: 30, language_own: 80, language_other: 20,
+    track: 30, jump: 25, swim: 25, throw: 25,
+  };
+  return presets[skill] ?? 40;
 }
 
 function makeChar(): Character {
@@ -119,9 +134,23 @@ async function main(): Promise<void> {
         narrative: ns,
       });
       const suggested = await adapter.suggestActions({ sceneContext, count: 4 });
-      if (suggested.length > 0) {
-        perSceneInScene.set(scene.id, suggested);
-        console.log(`    ✓ 建议行动 ${suggested.length} 个: ${suggested.map(s => s.label).join(' / ')}`);
+      // 把 SuggestedAction 转成 InSceneAction (含 check 的丢骰)
+      const rng = new DefaultRng();
+      const resolved: InSceneAction[] = suggested.map((a) => {
+        if (a.kind === 'simple') {
+          return { label: a.label, resultNarrate: a.resultNarrate };
+        }
+        // check 型 → 引擎丢 D100
+        const target = skillTarget(a.check.skill);
+        const result = rollCheck({ target, difficulty: a.check.difficulty }, rng);
+        const badge = `[${a.check.skill} ${result.roll}/${result.effectiveTarget} ${result.outcome}]`;
+        const narrate = result.succeeded ? a.successNarrate : a.failNarrate;
+        return { label: a.label, resultNarrate: `${badge} ${narrate}` };
+      });
+      if (resolved.length > 0) {
+        perSceneInScene.set(scene.id, resolved);
+        const checkCount = suggested.filter(a => a.kind === 'check').length;
+        console.log(`    ✓ 建议行动 ${resolved.length} 个 (${checkCount} 个含检定): ${resolved.map(s => s.label).join(' / ')}`);
       }
     } catch (e) {
       console.warn(`    ⚠ suggestActions 失败: ${(e as Error).message.slice(0, 60)}`);
