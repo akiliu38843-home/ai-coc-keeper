@@ -94,6 +94,13 @@ export function actionsToWebgalScript(actions: ReadonlyArray<LlmAction>): string
  *   ... (actions)
  *   choose:<exit1>:<scene>|<exit2>:<scene>;
  */
+export interface InSceneAction {
+  /** 按钮文字（≤ 8 字）*/
+  label: string;
+  /** 点选后 AI 叙事 */
+  resultNarrate: string;
+}
+
 export interface SceneSectionOptions {
   /** 这个 scene 里跑过的 LLM actions（来自 game session）*/
   actions?: ReadonlyArray<LlmAction>;
@@ -102,12 +109,17 @@ export interface SceneSectionOptions {
   /** BGM 文件名 */
   bgm?: string;
   /**
-   * 每个 exit 的过渡叙事（小 W8.3 新增）。
+   * 每个 exit 的过渡叙事（W8.3-mini）。
    * key: 该 scene exits[] 数组里的 index
    * value: 过渡叙事 actions（通常只 1 个 narrate）
    * 生成 WebGAL 时变成 transition label，玩家选择 → 跳 transition → 过渡叙事 → jumpLabel 到目标 scene
    */
   transitionActions?: Map<number, ReadonlyArray<LlmAction>>;
+  /**
+   * AI 在场景内建议的行动（W8.3-AI）。
+   * 玩家点选 → 看到 resultNarrate → 回到该 scene 的选项菜单（不跳 scene）
+   */
+  inSceneActions?: ReadonlyArray<InSceneAction>;
 }
 
 export function sceneToWebgalSection(
@@ -124,35 +136,61 @@ export function sceneToWebgalSection(
     lines.push(`bgm:${opts.bgm ?? scene.bgm};`);
   }
 
-  // 场景描述（如果没有 actions，就只放 description）
+  // 场景主叙事
   if (!opts.actions || opts.actions.length === 0) {
     lines.push(`${escapeForWebgal(scene.description)};`);
   } else {
     lines.push(...opts.actions.flatMap((a) => actionToWebgalLines(a)));
   }
 
-  // exits → choose（如果有 transitionActions 就跳 transition label 不直接 toScene）
-  if (scene.exits && scene.exits.length > 0) {
-    const choices = scene.exits
-      .map((e, i) => {
-        const target = opts.transitionActions?.has(i)
-          ? transitionLabelName(scene.id, i)
-          : e.toScene;
-        return `${escapeForWebgal(e.condition)}:${target}`;
-      })
-      .join('|');
-    lines.push(`choose:${choices};`);
+  const hasExits = scene.exits && scene.exits.length > 0;
+  const hasInScene = opts.inSceneActions && opts.inSceneActions.length > 0;
 
-    // 追加 transition label 块
-    if (opts.transitionActions) {
-      for (const [i, exit] of scene.exits.entries()) {
-        const transActs = opts.transitionActions.get(i);
-        if (transActs && transActs.length > 0) {
-          lines.push('');
-          lines.push(`label:${transitionLabelName(scene.id, i)};`);
-          lines.push(...transActs.flatMap((a) => actionToWebgalLines(a)));
-          lines.push(`jumpLabel:${exit.toScene};`);
-        }
+  if (!hasExits && !hasInScene) {
+    return lines.join('\n');
+  }
+
+  // 选项菜单 label（行动后 loop 回这里）
+  const choicesLabel = `${scene.id}_choices`;
+  lines.push('');
+  lines.push(`label:${choicesLabel};`);
+
+  // 拼 choose 命令：先 in-scene actions，后 exits
+  const choiceParts: string[] = [];
+  if (opts.inSceneActions) {
+    opts.inSceneActions.forEach((a, i) => {
+      choiceParts.push(`${escapeForWebgal(a.label)}:${inSceneActionLabelName(scene.id, i)}`);
+    });
+  }
+  if (scene.exits) {
+    scene.exits.forEach((e, i) => {
+      const target = opts.transitionActions?.has(i)
+        ? transitionLabelName(scene.id, i)
+        : e.toScene;
+      choiceParts.push(`${escapeForWebgal(e.condition)}:${target}`);
+    });
+  }
+  lines.push(`choose:${choiceParts.join('|')};`);
+
+  // in-scene action labels（loop back）
+  if (opts.inSceneActions) {
+    for (const [i, action] of opts.inSceneActions.entries()) {
+      lines.push('');
+      lines.push(`label:${inSceneActionLabelName(scene.id, i)};`);
+      lines.push(`${escapeForWebgal(action.resultNarrate)};`);
+      lines.push(`jumpLabel:${choicesLabel};`);
+    }
+  }
+
+  // exit transition labels（跳到下个 scene）
+  if (scene.exits && opts.transitionActions) {
+    for (const [i, exit] of scene.exits.entries()) {
+      const transActs = opts.transitionActions.get(i);
+      if (transActs && transActs.length > 0) {
+        lines.push('');
+        lines.push(`label:${transitionLabelName(scene.id, i)};`);
+        lines.push(...transActs.flatMap((a) => actionToWebgalLines(a)));
+        lines.push(`jumpLabel:${exit.toScene};`);
       }
     }
   }
@@ -162,6 +200,10 @@ export function sceneToWebgalSection(
 
 function transitionLabelName(fromSceneId: string, exitIndex: number): string {
   return `trans_${fromSceneId}_${exitIndex}`;
+}
+
+function inSceneActionLabelName(sceneId: string, actionIndex: number): string {
+  return `act_${sceneId}_${actionIndex}`;
 }
 
 // ─── Scenario → 完整 game 目录布局 ─────────────────────
@@ -184,6 +226,7 @@ export function buildScenarioGame(
   scenario: Scenario,
   perSceneActions: Map<string, ReadonlyArray<LlmAction>> = new Map(),
   perSceneTransitions: Map<string, Map<number, ReadonlyArray<LlmAction>>> = new Map(),
+  perSceneInSceneActions: Map<string, ReadonlyArray<InSceneAction>> = new Map(),
 ): BuildScenarioGameResult {
   // start.txt：直接 jumpLabel 到起点
   const startTxt = [
@@ -202,6 +245,8 @@ export function buildScenarioGame(
       if (actions !== undefined) opts.actions = actions;
       const trans = perSceneTransitions.get(s.id);
       if (trans !== undefined) opts.transitionActions = trans;
+      const inScene = perSceneInSceneActions.get(s.id);
+      if (inScene !== undefined) opts.inSceneActions = inScene;
       return sceneToWebgalSection(s, opts);
     })
     .join('\n\n');

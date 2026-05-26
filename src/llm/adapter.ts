@@ -165,6 +165,64 @@ export class LlmAdapter {
     return parseLlmAction(res.content);
   }
 
+  /**
+   * 让 LLM 基于当前 scene 给出 3-5 个"建议行动"+ 每个的结果叙事。
+   * 用在"AI DM 提供选项"模式 —— 玩家不用自由输入。
+   *
+   * 输出包含:
+   *   - label: 玩家看到的按钮文字（≤ 8 个字）
+   *   - resultNarrate: 玩家点这个选项后看到的 AI 叙事
+   *
+   * 注意: 这些行动**不跳场景**, 都是当前 scene 内的探索 / 互动
+   */
+  async suggestActions(params: {
+    sceneContext: string;
+    count?: number;
+  }): Promise<Array<{ label: string; resultNarrate: string }>> {
+    const count = params.count ?? 4;
+    const msg = `请基于上面那个场景, 生成 ${count} 个"玩家可能想做的小行动" + 每个的结果叙事。
+
+【硬约束】
+1. 行动**不能跳场景** —— 只在当前 scene 内的探索 / 观察 / 简短对话 / 尝试小动作
+2. 不能触发离开场景的逻辑 (那是 exits 的事, 这里别管)
+3. 不能丢骰子 / 不能解决场景核心谜题 (那是真版玩家行动 + 引擎检定要做的)
+4. 行动 label ≤ 8 个汉字, 像 "查抽屉" / "看照片" / "敲墙壁"
+5. resultNarrate 是 1-3 句叙事, 描述玩家做了之后看到/听到/感受到的东西
+6. 不要给玩家直接揭示关键剧情, 用暗示 / 氛围渲染填充
+
+【输出 JSON schema】 (严格 JSON, 不带 markdown wrapper)
+{
+  "actions": [
+    { "label": "短按钮文字", "resultNarrate": "结果叙事" },
+    ...
+  ]
+}`;
+
+    this.history.push({ role: 'user', content: msg });
+    this.trimHistory();
+    const res = await this.provider.chat(this.history, {
+      temperature: this.temperature,
+      jsonMode: true,
+    });
+    this.history.push({ role: 'assistant', content: res.content });
+
+    const cleaned = res.content
+      .replace(/^```(?:json)?\s*/i, '')
+      .replace(/\s*```\s*$/, '')
+      .trim();
+    try {
+      const parsed = JSON.parse(cleaned) as { actions?: Array<{ label?: string; resultNarrate?: string }> };
+      if (!Array.isArray(parsed.actions)) return [];
+      return parsed.actions
+        .filter((a): a is { label: string; resultNarrate: string } =>
+          typeof a.label === 'string' && typeof a.resultNarrate === 'string'
+        )
+        .slice(0, count);
+    } catch {
+      return [];
+    }
+  }
+
   /** 玩家做了一个选择 / 过渡，要 LLM 写过渡叙事（1-3 句） */
   async narrateTransition(params: {
     fromScene: string;

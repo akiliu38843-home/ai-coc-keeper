@@ -11,7 +11,8 @@ import { readFile, writeFile, copyFile, access } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadScenarioFromJson } from '../src/engine/scenario-validator.js';
-import { buildScenarioGame } from '../src/adapter/webgal-script-builder.js';
+import { buildScenarioGame, type InSceneAction } from '../src/adapter/webgal-script-builder.js';
+import { buildSceneContext } from '../src/llm/prompts.js';
 import { OpenAICompatibleProvider } from '../src/llm/openai-compatible.js';
 import { LlmAdapter, type LlmAction } from '../src/llm/adapter.js';
 import { InMemoryNarrativeState } from '../src/engine/in-memory-narrative-state.js';
@@ -78,6 +79,7 @@ async function main(): Promise<void> {
   const char = makeChar();
   const perSceneActions = new Map<string, LlmAction[]>();
   const perSceneTransitions = new Map<string, Map<number, LlmAction[]>>();
+  const perSceneInScene = new Map<string, InSceneAction[]>();
 
   // 每个 scene: 1) enterScene 拿主叙事 2) 每个 exit 跑 narrateTransition
   for (let i = 0; i < scenario.scenes.length; i++) {
@@ -108,7 +110,25 @@ async function main(): Promise<void> {
       console.warn(`    ⚠ enterScene 失败, 回退原描述: ${(e as Error).message.slice(0, 80)}`);
     }
 
-    // 2) 每个 exit 的过渡叙事
+    // 2) AI 建议行动（in-scene actions, 不跳 scene）
+    try {
+      const sceneContext = buildSceneContext({
+        scenario: { id: scenario.id, title: scenario.title, setting: scenario.setting },
+        scene: { id: scene.id, name: scene.name, description: scene.description, hints: scene.hints ?? [] },
+        character: char,
+        narrative: ns,
+      });
+      const suggested = await adapter.suggestActions({ sceneContext, count: 4 });
+      if (suggested.length > 0) {
+        perSceneInScene.set(scene.id, suggested);
+        console.log(`    ✓ 建议行动 ${suggested.length} 个: ${suggested.map(s => s.label).join(' / ')}`);
+      }
+    } catch (e) {
+      console.warn(`    ⚠ suggestActions 失败: ${(e as Error).message.slice(0, 60)}`);
+    }
+    await new Promise((r) => setTimeout(r, 300));
+
+    // 3) 每个 exit 的过渡叙事
     if (scene.exits && scene.exits.length > 0) {
       const sceneTrans = new Map<number, LlmAction[]>();
       for (const [exitIdx, exit] of scene.exits.entries()) {
@@ -130,7 +150,7 @@ async function main(): Promise<void> {
   }
 
   console.log(`\n🔨 构建 WebGAL game...`);
-  const built = buildScenarioGame(scenario, perSceneActions, perSceneTransitions);
+  const built = buildScenarioGame(scenario, perSceneActions, perSceneTransitions, perSceneInScene);
 
   const startTxtPath = join(WEBGAL_SCENE_DIR, 'start.txt');
   await backupIfNeeded(startTxtPath);
