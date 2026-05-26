@@ -101,6 +101,13 @@ export interface SceneSectionOptions {
   background?: string;
   /** BGM 文件名 */
   bgm?: string;
+  /**
+   * 每个 exit 的过渡叙事（小 W8.3 新增）。
+   * key: 该 scene exits[] 数组里的 index
+   * value: 过渡叙事 actions（通常只 1 个 narrate）
+   * 生成 WebGAL 时变成 transition label，玩家选择 → 跳 transition → 过渡叙事 → jumpLabel 到目标 scene
+   */
+  transitionActions?: Map<number, ReadonlyArray<LlmAction>>;
 }
 
 export function sceneToWebgalSection(
@@ -121,19 +128,40 @@ export function sceneToWebgalSection(
   if (!opts.actions || opts.actions.length === 0) {
     lines.push(`${escapeForWebgal(scene.description)};`);
   } else {
-    // 有 actions：先 actions 再补 exits
     lines.push(...opts.actions.flatMap((a) => actionToWebgalLines(a)));
   }
 
-  // exits → choose
+  // exits → choose（如果有 transitionActions 就跳 transition label 不直接 toScene）
   if (scene.exits && scene.exits.length > 0) {
     const choices = scene.exits
-      .map((e) => `${escapeForWebgal(e.condition)}:${e.toScene}`)
+      .map((e, i) => {
+        const target = opts.transitionActions?.has(i)
+          ? transitionLabelName(scene.id, i)
+          : e.toScene;
+        return `${escapeForWebgal(e.condition)}:${target}`;
+      })
       .join('|');
     lines.push(`choose:${choices};`);
+
+    // 追加 transition label 块
+    if (opts.transitionActions) {
+      for (const [i, exit] of scene.exits.entries()) {
+        const transActs = opts.transitionActions.get(i);
+        if (transActs && transActs.length > 0) {
+          lines.push('');
+          lines.push(`label:${transitionLabelName(scene.id, i)};`);
+          lines.push(...transActs.flatMap((a) => actionToWebgalLines(a)));
+          lines.push(`jumpLabel:${exit.toScene};`);
+        }
+      }
+    }
   }
 
   return lines.join('\n');
+}
+
+function transitionLabelName(fromSceneId: string, exitIndex: number): string {
+  return `trans_${fromSceneId}_${exitIndex}`;
 }
 
 // ─── Scenario → 完整 game 目录布局 ─────────────────────
@@ -155,6 +183,7 @@ export interface BuildScenarioGameResult {
 export function buildScenarioGame(
   scenario: Scenario,
   perSceneActions: Map<string, ReadonlyArray<LlmAction>> = new Map(),
+  perSceneTransitions: Map<string, Map<number, ReadonlyArray<LlmAction>>> = new Map(),
 ): BuildScenarioGameResult {
   // start.txt：直接 jumpLabel 到起点
   const startTxt = [
@@ -171,6 +200,8 @@ export function buildScenarioGame(
       const opts: SceneSectionOptions = {};
       const actions = perSceneActions.get(s.id);
       if (actions !== undefined) opts.actions = actions;
+      const trans = perSceneTransitions.get(s.id);
+      if (trans !== undefined) opts.transitionActions = trans;
       return sceneToWebgalSection(s, opts);
     })
     .join('\n\n');

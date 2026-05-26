@@ -165,6 +165,30 @@ export class LlmAdapter {
     return parseLlmAction(res.content);
   }
 
+  /** 玩家做了一个选择 / 过渡，要 LLM 写过渡叙事（1-3 句） */
+  async narrateTransition(params: {
+    fromScene: string;
+    toScene: string;
+    choiceText: string;
+  }): Promise<LlmAction> {
+    this.history.push({
+      role: 'user',
+      content: `玩家做了选择："${params.choiceText}"。这个选择把他从场景 ${params.fromScene} 带向 ${params.toScene}。请用 1-3 句话写一段过渡叙事，描述他做出动作的瞬间到抵达新场景前的感受 / 视觉 / 声音。不要描述目标场景的内容（那是下一个 scene 的事）。**只输出 narrate type**——不要用 jump_scene，jumpLabel 由代码处理。`,
+    });
+    this.trimHistory();
+    const res = await this.provider.chat(this.history, {
+      temperature: this.temperature,
+      jsonMode: true,
+    });
+    this.history.push({ role: 'assistant', content: res.content });
+    const action = parseLlmAction(res.content);
+    // 防御：LLM 偶尔返回 jump_scene type，强制降级为 narrate
+    if (action.type !== 'narrate' && action.type !== 'dialogue') {
+      return { type: 'narrate', text: action.text };
+    }
+    return action;
+  }
+
   /** 检定刚出结果，请 LLM 叙事 */
   async narrateCheckResult(
     checkResult: import('../types/rules.js').CheckResult,

@@ -64,7 +64,7 @@ async function main(): Promise<void> {
   console.log(`✏️  拼入 ${scenario.scenes.length} 个 scene labels 到 start.txt`);
 
   console.log('\n✅ 完成');
-  console.log('   现在去浏览器刷新 http://localhost:3000/ 看效果');
+  console.log('   现在去浏览器刷新 http://localhost:3300/ 看效果');
 }
 
 await main().catch((e: unknown) => {

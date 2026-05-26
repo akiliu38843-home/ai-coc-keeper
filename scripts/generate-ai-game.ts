@@ -77,15 +77,16 @@ async function main(): Promise<void> {
   });
   const char = makeChar();
   const perSceneActions = new Map<string, LlmAction[]>();
+  const perSceneTransitions = new Map<string, Map<number, LlmAction[]>>();
 
-  // 每个 scene 跑一次 LLM 拿场景描述
+  // 每个 scene: 1) enterScene 拿主叙事 2) 每个 exit 跑 narrateTransition
   for (let i = 0; i < scenario.scenes.length; i++) {
     const scene = scenario.scenes[i]!;
-    console.log(`[${i + 1}/${scenario.scenes.length}] LLM 叙事: ${scene.id} · ${scene.name}`);
-    // 每个 scene 用独立 LlmAdapter 实例，避免 history 互相污染
+    console.log(`[${i + 1}/${scenario.scenes.length}] LLM: ${scene.id} · ${scene.name}`);
     const adapter = new LlmAdapter({ provider });
     const ns = new InMemoryNarrativeState({ startSceneId: scene.id });
 
+    // 1) 场景主叙事
     try {
       const action = await adapter.enterScene({
         scenario: { id: scenario.id, title: scenario.title, setting: scenario.setting },
@@ -101,26 +102,35 @@ async function main(): Promise<void> {
         character: char,
         narrative: ns,
       });
-      // 只取 narrate / dialogue 的 LLM 结果（其它类型 V0 不用）
-      const actions: LlmAction[] = [];
-      if (action.type === 'narrate' || action.type === 'dialogue') {
-        actions.push(action);
-      } else {
-        // 其它类型如 request_check / jump_scene 也 keep, builder 自动处理
-        actions.push(action);
-      }
-      perSceneActions.set(scene.id, actions);
-      console.log(`    ✓ ${action.type} (${(action.text ?? '').slice(0, 40)}...)`);
+      perSceneActions.set(scene.id, [action]);
+      console.log(`    ✓ enterScene · ${action.type} (${(action.text ?? '').slice(0, 40)}...)`);
     } catch (e) {
-      console.warn(`    ⚠ LLM 失败, 回退原描述: ${(e as Error).message.slice(0, 80)}`);
+      console.warn(`    ⚠ enterScene 失败, 回退原描述: ${(e as Error).message.slice(0, 80)}`);
     }
 
-    // 节流防 rate-limit
-    if (i < scenario.scenes.length - 1) await new Promise((r) => setTimeout(r, 500));
+    // 2) 每个 exit 的过渡叙事
+    if (scene.exits && scene.exits.length > 0) {
+      const sceneTrans = new Map<number, LlmAction[]>();
+      for (const [exitIdx, exit] of scene.exits.entries()) {
+        try {
+          const transAction = await adapter.narrateTransition({
+            fromScene: scene.id,
+            toScene: exit.toScene,
+            choiceText: exit.condition,
+          });
+          sceneTrans.set(exitIdx, [transAction]);
+          console.log(`    ✓ exit[${exitIdx}] "${exit.condition.slice(0, 25)}" → ${exit.toScene}`);
+        } catch (e) {
+          console.warn(`    ⚠ exit[${exitIdx}] transition 失败: ${(e as Error).message.slice(0, 60)}`);
+        }
+        await new Promise((r) => setTimeout(r, 300));
+      }
+      if (sceneTrans.size > 0) perSceneTransitions.set(scene.id, sceneTrans);
+    }
   }
 
   console.log(`\n🔨 构建 WebGAL game...`);
-  const built = buildScenarioGame(scenario, perSceneActions);
+  const built = buildScenarioGame(scenario, perSceneActions, perSceneTransitions);
 
   const startTxtPath = join(WEBGAL_SCENE_DIR, 'start.txt');
   await backupIfNeeded(startTxtPath);
