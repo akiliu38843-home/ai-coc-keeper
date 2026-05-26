@@ -71,6 +71,28 @@ ai-coc-keeper/
 - **基于** [BRP / ORC License](https://www.chaosium.com/orc-license/) 规则 + [Lovecraft 中国 public domain](https://en.wikipedia.org/wiki/H._P._Lovecraft) 原文
 - 详见 [`docs/02-orc-license-deep-dive.md`](docs/02-orc-license-deep-dive.md)
 
+## 跑测试 / 跑 console demo
+
+```bash
+# 装依赖
+npm install
+
+# 跑单测（应 83/83 全过）
+npm test
+
+# 严格 TS 类型检查
+npm run typecheck
+
+# 跑端到端 console demo（需要 LLM API key）
+#   1. 拷贝 .env.example → .env，填入 LLM_BASE_URL/LLM_API_KEY/LLM_MODEL
+#   2. 运行：
+npm run demo
+```
+
+`.env` 已在 `.gitignore` 里，**永不入 git**。
+
+支持的 provider：任何 OpenAI 兼容的 endpoint（OpenAI / DeepSeek / Anthropic-via-proxy / 各种聚合器 e.g. uyilink）。
+
 ## V0 里程碑（10 周）
 
 | 周 | 工作 |
