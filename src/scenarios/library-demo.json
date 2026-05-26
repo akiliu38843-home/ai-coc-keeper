@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 1,
+  "id": "library_demo",
+  "title": "失踪的馆长",
+  "author": "ai-coc-keeper demo",
+  "setting": "1928 年新英格兰小镇，一家废弃图书馆",
+  "authorNotes": "短 demo 剧本，3 个场景，用来验证 V0 引擎能跑通'场景 → 检定 → 叙事' 闭环。线索集中在接待台与楼上馆长办公室，关键 NPC 是已经死去的馆长 Pickman。",
+  "startSceneId": "scene_entrance",
+  "scenes": [
+    {
+      "id": "scene_entrance",
+      "name": "图书馆门厅",
+      "description": "推开沉重的橡木大门，一股潮湿的霉味扑面而来。月光从破碎的彩绘玻璃漏进来，照在堆满灰尘的接待台上。空气里有一种奇怪的甜腻味道。",
+      "hints": [
+        "接待台抽屉里有一本访客登记簿，最后一条记录显示馆长 Pickman 三天前签到，但没签出",
+        "墙上挂着馆长的照片，眼睛部分被人粗暴地挖空",
+        "楼梯通向二楼办公室，似乎有动静"
+      ],
+      "expectedChecks": [
+        {
+          "skill": "spot_hidden",
+          "difficulty": "normal",
+          "reason": "观察接待台周围 —— 玩家应能看到登记簿、挖眼照片",
+          "onSuccess": {
+            "setFlags": { "found_visitor_log": true },
+            "revealText": "你注意到接待台抽屉露出一角纸页 —— 一本陈旧的访客登记簿。"
+          }
+        },
+        {
+          "skill": "listen",
+          "difficulty": "normal",
+          "reason": "倾听二楼的动静",
+          "onSuccess": {
+            "setFlags": { "heard_upstairs": true },
+            "revealText": "你听到二楼有规律的、湿润的滴答声 —— 不像水。"
+          }
+        }
+      ],
+      "sanityTriggers": [
+        {
+          "trigger": "玩家近距离看到馆长照片被挖空的眼睛",
+          "lossOnSuccess": 0,
+          "lossOnFailureRoll": "1d3",
+          "description": "那双挖空的黑洞似乎正在盯着你"
+        }
+      ],
+      "exits": [
+        { "toScene": "scene_upstairs", "condition": "玩家选择上楼" },
+        { "toScene": "scene_reception", "condition": "玩家选择查看接待台" }
+      ]
+    },
+    {
+      "id": "scene_reception",
+      "name": "接待台与访客登记簿",
+      "description": "你绕到接待台后面。抽屉半开着，里面是一本封面已被霉斑啃出黑点的访客登记簿。台面下还有一抽屉，但被锁住了。",
+      "hints": [
+        "访客登记簿最后一页：'P. Pickman, 11/19/1928, 11:42 PM' —— 三天前的深夜",
+        "被锁的抽屉里有一把铜钥匙，钥匙柄上刻着 '203' —— 二楼办公室"
+      ],
+      "expectedChecks": [
+        {
+          "skill": "library_use",
+          "difficulty": "normal",
+          "reason": "翻阅访客登记簿，找馆长签到记录",
+          "onSuccess": {
+            "setFlags": { "knows_pickman_late_night": true },
+            "revealText": "你翻到最后一条记录：馆长三天前深夜进入图书馆，但从未签出。"
+          }
+        },
+        {
+          "skill": "locksmith",
+          "difficulty": "hard",
+          "reason": "撬开被锁的抽屉",
+          "onSuccess": {
+            "setFlags": { "found_203_key": true },
+            "revealText": "锁芯咔哒一声，抽屉滑开。你看到一把铜钥匙，柄上刻着 '203'。"
+          }
+        }
+      ],
+      "exits": [
+        { "toScene": "scene_entrance", "condition": "玩家回到门厅" },
+        { "toScene": "scene_upstairs", "condition": "玩家上楼" }
+      ]
+    },
+    {
+      "id": "scene_upstairs",
+      "name": "二楼走廊与 203 办公室",
+      "description": "二楼走廊狭长，木地板每走一步都发出抗议般的呻吟。走廊尽头是 203 室 —— 馆长 Pickman 的办公室。门虚掩着，里面隐隐传出那种甜腻气味。",
+      "hints": [
+        "门虚掩，能直接推开",
+        "办公桌上有一本笔记本，最后一页写着不属于人类语言的符号",
+        "馆长本人趴在桌上，已经死去多日 —— 眼睛被以同样方式挖空"
+      ],
+      "expectedChecks": [
+        {
+          "skill": "spot_hidden",
+          "difficulty": "hard",
+          "reason": "观察办公室内的异常细节（符号 / 馆长姿态）",
+          "onSuccess": {
+            "setFlags": { "saw_corpse_and_symbols": true },
+            "revealText": "你的胃部一阵抽搐 —— 馆长 Pickman 趴在桌上，眼睛被挖空。桌面笔记本最后一页是某种螺旋状的符号，看一眼便觉头晕。"
+          }
+        }
+      ],
+      "sanityTriggers": [
+        {
+          "trigger": "玩家直接看到 Pickman 馆长的尸体",
+          "lossOnSuccess": 1,
+          "lossOnFailureRoll": "1d6",
+          "description": "馆长的尸体已经开始腐烂，被挖空的眼眶里爬出几只苍白的小虫"
+        },
+        {
+          "trigger": "玩家细看笔记本上的螺旋符号",
+          "lossOnSuccess": 0,
+          "lossOnFailureRoll": "1d4",
+          "description": "那些符号似乎在缓慢蠕动，又像只是你疲惫眼睛的错觉"
+        }
+      ],
+      "exits": [
+        { "toScene": "scene_entrance", "condition": "玩家逃下楼" }
+      ]
+    }
+  ],
+  "npcs": [
+    {
+      "id": "pickman_corpse",
+      "name": "P. Pickman 馆长",
+      "persona": "图书馆馆长，1872 年生，独居，沉迷古籍。三天前死亡，眼睛被挖空，尸体已开始腐烂。无法对话 —— 已死。仅在玩家发现尸体时出现作为'被观察对象'。",
+      "initialAttitude": 0
+    }
+  ]
+}
