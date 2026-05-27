@@ -155,8 +155,16 @@ async function main(): Promise<void> {
   // ★ 关键改造: 整本剧本共享 ONE narrative + ONE LlmAdapter,
   // 让后续 scene narrate 看得到前面 scene 的"假定主路径"选择历史.
   // 主路径 = 每个 scene 的 exits[0] (作者写 scenarios JSON 时把"最常见"的 exit 放第一).
+  //
+  // historyLimit=200 让整本 6-19 scene 都能 fit, 不被 trim 出去 (LLM 真看到全程)
+  // token 成本影响: scene N 调用时 prompt 会包含 1..N-1 所有 message, scene 6 时
+  // 可能 prompt ~10-15K tokens. gpt-5.4-mini 处理 OK, gateway 不超时.
   const sharedNarrative = new InMemoryNarrativeState({ startSceneId: scenario.startSceneId });
-  const sharedAdapter = new LlmAdapter({ provider, historyLimit: 30 });
+  const sharedAdapter = new LlmAdapter({ provider, historyLimit: 200 });
+
+  // ★ 玩家行动 / 状态变化的"事件日志" - 给 LLM 看的"剧情概要"
+  // 不依赖 LLM 自己的 chat history (会被 trim), 用显式 storyMemo 保证关键 beat 不丢
+  const storyMemo: string[] = [];
 
   /** 统一处理 HP 伤害: 返回 badge 字符串. */
   function applyHpDamage(dmgSpec: number | string, reason: string, physical = true): string {
@@ -212,14 +220,18 @@ async function main(): Promise<void> {
     const adapter = sharedAdapter;
     const ns = sharedNarrative;
 
-    // 1) 场景主叙事 (LLM 看到 visitedScenes + choiceHistory + 角色状态)
+    // 1) 场景主叙事 (LLM 看到 visitedScenes + choiceHistory + 角色状态 + storyMemo)
     try {
+      // 把 storyMemo 注入到 scene description 前面, 让 LLM 显式看到"前情提要"
+      const storyContext = storyMemo.length > 0
+        ? `\n\n【前情提要 · 玩家已经历的关键事件】\n${storyMemo.join('\n')}\n\n请你写的 narrate 至少有 1 处具体 reflect 上面某条经历 (引用具体 beat, 不是泛泛 "你想起之前的事")。\n\n`
+        : '';
       const action = await adapter.enterScene({
         scenario: { id: scenario.id, title: scenario.title, setting: scenario.setting },
         scene: {
           id: scene.id,
           name: scene.name,
-          description: scene.description,
+          description: storyContext + scene.description,
           hints: scene.hints ?? [],
           expectedChecks: (scene.expectedChecks ?? []).map((c) => ({
             skill: c.skill, difficulty: c.difficulty, reason: c.reason,
@@ -230,6 +242,7 @@ async function main(): Promise<void> {
       });
       // 1b) 处理 scene.sanityTriggers（作者埋的"进场就触发"恐怖点）
       const triggerBadges: string[] = [];
+      const sceneSanityBeats: string[] = [];
       for (const trigger of (scene.sanityTriggers ?? [])) {
         const sanResult = rollSanityCheck({
           currentSanity: char.currentSanity,
@@ -238,8 +251,21 @@ async function main(): Promise<void> {
           reason: trigger.trigger,
         }, rng);
         const badge = applySanity(sanResult.actualLoss, trigger.trigger);
-        if (badge) triggerBadges.push(badge);
+        if (badge) {
+          triggerBadges.push(badge);
+          sceneSanityBeats.push(trigger.trigger);
+        }
       }
+      // 记录此 scene 的事件 memo: 名 + SAN 损失 + 触发的关键 beat
+      const sanityBefore = char.maxSanity - sanityLossAccum + sceneSanityBeats.reduce((acc, _t) => acc, 0);
+      const memoLine = `${i + 1}. 《${scene.name}》: ` +
+        (sceneSanityBeats.length ? `经历了 [${sceneSanityBeats.slice(0, 2).join(' / ')}] ` : '') +
+        `心智 ${char.currentSanity}/${char.maxSanity}` +
+        (char.conditions.some((c) => c.type === 'indef_insanity')
+          ? ` · 已患长期心智失常 (${char.conditions.find((c) => c.type === 'indef_insanity')?.insanityDetail?.nameZh ?? '?'})`
+          : '');
+      storyMemo.push(memoLine);
+      void sanityBefore; // 防 lint
       // 把 trigger badges 拼到主 narrate 后
       let narrateWithBadges = action;
       if (triggerBadges.length > 0 && (action.type === 'narrate' || action.type === 'dialogue')) {
