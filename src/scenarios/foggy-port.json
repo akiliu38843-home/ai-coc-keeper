@@ -1,0 +1,232 @@
+{
+  "schemaVersion": 1,
+  "id": "foggy-port",
+  "title": "雾港夜行",
+  "author": "ai-coc-keeper · 原创",
+  "setting": "1932 年新英格兰沿海小镇 Bramble 港，深秋一个浓雾骤起的夜晚",
+  "authorNotes": "原创单人本。探者搭乘的最后一班沿海班车被浓雾困在 Bramble 这个不被任何地图明确标注的渔港小镇。本镇靠捕鱼为生，但渔民们对外人异常戒备，灯塔在浓雾里一闪一灭，节奏不像现代灯塔的标准信号。线索：客栈老板娘 Hattie 的耳后有片光滑发白的皮肤补丁；阁楼上能听到非人类的吟唱；教堂祭坛后有通往海蚀洞的暗道；黎明前祭祀启动。结局：趁浓雾散去前夺路逃出 / 闯入祭祀阻止 / 选择被同化加入。",
+  "startSceneId": "scene_pier_arrival",
+  "scenes": [
+    {
+      "id": "scene_pier_arrival",
+      "name": "雾港码头",
+      "description": "你拖着行李从沿海班车下来时，浓雾已经压得近乎实体，几步外的东西都辨不清形状。湿冷的咸味贴在喉咙里，鱼腥味比记忆中任何渔港都浓得多 —— 像是某种过期发酵的东西。远处灯塔的光在雾中明暗交替，节奏却怪得让人心慌：不是匀速的旋转扫光，而是三短两长，像在向某个看得见雾另一头的人发讯号。",
+      "mood": "calm",
+      "hints": [
+        "灯塔的信号节奏（三短两长）不是任何已知海事标准信号",
+        "码头边停泊的渔船吃水线异常深，甲板上堆着一些蒙着帆布的、形状不规则的'渔获'",
+        "几个戴帽子的镇民远远打量你，没人上前招呼 —— 在这种夜里这是异常的（正常渔港会有人来揽客住宿）",
+        "码头唯一亮着灯的建筑是 'Gilman 客栈'（百米外的二层木楼）"
+      ],
+      "expectedChecks": [
+        {
+          "skill": "spot_hidden",
+          "difficulty": "normal",
+          "reason": "观察码头与镇民的异常",
+          "onSuccess": {
+            "setFlags": { "noticed_strange_boats": true },
+            "revealText": "你注意到渔船甲板上的'渔获'蒙布下，形状并不像鱼 —— 有些棱角更接近人形或某种弯曲的肢体。"
+          }
+        },
+        {
+          "skill": "listen",
+          "difficulty": "hard",
+          "reason": "辨识灯塔节奏",
+          "onSuccess": {
+            "setFlags": { "decoded_lighthouse_pattern": true },
+            "revealText": "三短两长 —— 这不是海事信号，倒像是某种召唤节拍，你脑子里隐隐有种印象：什么人或什么东西在'雾另一头'被点名。"
+          }
+        }
+      ],
+      "sanityTriggers": [
+        {
+          "trigger": "意识到这座小镇在你所有海图上都不存在",
+          "lossOnSuccess": 0,
+          "lossOnFailureRoll": "1d3",
+          "description": "你掏出班车票根时，目的地一栏只写着'港口（紧急停靠）'，没有镇名"
+        }
+      ],
+      "exits": [
+        { "toScene": "scene_inn", "condition": "玩家走向 Gilman 客栈" },
+        { "toScene": "scene_church", "condition": "玩家无视客栈直奔镇中心" }
+      ]
+    },
+    {
+      "id": "scene_inn",
+      "name": "Gilman 客栈",
+      "description": "你推门进入客栈，门铃发出一声闷哑的响 —— 不像金属，更像被湿木头捂着的声音。柜台后的老板娘 Hattie 抬起头，对你露出过分熟练的微笑：'外地人？正好雾里走不了，住一晚十五分钱。' 大堂壁炉的火焰颜色发青，跳动得也太慢；二楼传来一阵几乎听不见的、像唱诗又像鲸鸣的低响。",
+      "mood": "mystery",
+      "hints": [
+        "Hattie 的耳后（右侧）有一片光滑、发白、形状像鱼鳃的皮肤；她梳头时刻意把头发挡过去",
+        "登记簿上前一晚的访客签字栏空空如也，但翻到本月每周三都有人入住，且都没退房",
+        "二楼的吟唱声只有靠近楼梯口才能听见，回到大堂又消失，像被建筑刻意吸收",
+        "壁炉旁有一本被翻烂的旧航海日志，最后一页画着 Bramble 港轮廓，但海岸线外多了一道弧形的浅滩 —— 现代海图上根本没有"
+      ],
+      "expectedChecks": [
+        {
+          "skill": "spot_hidden",
+          "difficulty": "normal",
+          "reason": "观察 Hattie 的异常细节",
+          "onSuccess": {
+            "setFlags": { "saw_hattie_gill": true },
+            "revealText": "Hattie 转头招呼炉边客人时，你瞥见她右耳后那片光滑发白的皮肤 —— 形状像三道平行的浅鳃裂，被她头发匆忙挡了回去。"
+          }
+        },
+        {
+          "skill": "library_use",
+          "difficulty": "normal",
+          "reason": "查阅航海日志找镇外异常",
+          "onSuccess": {
+            "setFlags": { "found_phantom_reef": true },
+            "revealText": "日志最后一页画的弧形浅滩在现代海图上根本不存在，但旁边手写的小字注释只有一行：'低潮夜，礁石醒。'"
+          }
+        },
+        {
+          "skill": "listen",
+          "difficulty": "hard",
+          "reason": "破解二楼吟唱内容",
+          "onSuccess": {
+            "setFlags": { "decoded_chant": true },
+            "revealText": "靠近楼梯时，你勉强能分辨出那不是英语 —— 节奏与方才灯塔的'三短两长'对得严丝合缝。某种东西在被一同召唤。"
+          }
+        }
+      ],
+      "sanityTriggers": [
+        {
+          "trigger": "近距离看到 Hattie 耳后的鳃裂状皮肤补丁",
+          "lossOnSuccess": 0,
+          "lossOnFailureRoll": "1d4",
+          "description": "那不是疤痕，是一片仍在缓慢张合的薄膜"
+        },
+        {
+          "trigger": "听清二楼吟唱与灯塔节奏完全同步",
+          "lossOnSuccess": 0,
+          "lossOnFailureRoll": "1d3",
+          "description": "你忽然意识到整个港口都在向同一个东西伸手"
+        }
+      ],
+      "exits": [
+        { "toScene": "scene_church", "condition": "玩家借口透气，溜出客栈往镇中心走" },
+        { "toScene": "scene_dawn", "condition": "玩家试图返回码头夺路逃离" }
+      ]
+    },
+    {
+      "id": "scene_church",
+      "name": "海风教堂",
+      "description": "镇中心那座低矮的木制教堂在雾里只露出一道发蓝的窗光。你推开虚掩的门，里面没有牧师，只有几十个戴兜帽的镇民围着祭坛沉默站立。祭坛上没有十字架 —— 取而代之的是一只用骨与贝壳拼成的、约一人高的弯曲螺旋。空气里那股鱼腥味浓到让人胸闷，混着一种'潮湿但又灼热'的味道，像潮水拍打过的烫沙。",
+      "mood": "horror",
+      "hints": [
+        "螺旋祭坛后方有一扇低矮的拱门，门后是向下的石阶，能听到海浪冲击的声音 —— 通向海蚀洞",
+        "镇民们的肩胛骨之间普遍有一块鼓起的凸起，被外套盖着，跟随他们的呼吸一起轻微起伏",
+        "祭坛下方的石板缝隙里有一些刚被擦掉、但仍能辨认的褐色血迹拖痕，方向朝向那扇拱门",
+        "一个躲在角落颤抖的少年（约 15 岁）正在用指甲狠狠抠自己肩胛骨那块凸起，似乎在试图把它抠掉 —— 这是镇上唯一'还像人'的人"
+      ],
+      "expectedChecks": [
+        {
+          "skill": "spot_hidden",
+          "difficulty": "hard",
+          "reason": "在不被察觉下观察祭坛与镇民",
+          "onSuccess": {
+            "setFlags": { "saw_back_bumps": true, "saw_struggling_boy": true },
+            "revealText": "你后退半步，眼角余光锁定那个抠肩胛骨的少年 —— 他抬起头一瞬，你看见他眼底的恐惧是真的；他还知道这一切不对劲。"
+          }
+        },
+        {
+          "skill": "occult",
+          "difficulty": "hard",
+          "reason": "辨识骨贝螺旋的含义",
+          "onSuccess": {
+            "setFlags": { "understood_spiral_meaning": true },
+            "revealText": "这不是任何已知人类宗教的圣物。螺旋的盘绕方向 —— 顺时针向内 —— 在多数古老海上传说里代表'把陆地上的东西送下海'。"
+          }
+        },
+        {
+          "skill": "stealth",
+          "difficulty": "normal",
+          "reason": "避免被祭坛上的镇民发现",
+          "onSuccess": {
+            "setFlags": { "stayed_undetected": true },
+            "revealText": "你压低呼吸，沿着阴影边缘慢慢挪到能看清拱门的位置。没有人转头。还没有。"
+          }
+        }
+      ],
+      "sanityTriggers": [
+        {
+          "trigger": "看清骨与贝壳拼成的螺旋祭坛",
+          "lossOnSuccess": 0,
+          "lossOnFailureRoll": "1d4",
+          "description": "螺旋向内盘绕的方向让你脑中冒出一种'被吞下去'的眩晕"
+        },
+        {
+          "trigger": "意识到那个抠肩胛骨的少年是镇上唯一还在抗拒的人",
+          "lossOnSuccess": 0,
+          "lossOnFailureRoll": "1d3",
+          "description": "他眼里的恐惧告诉你：你今天看到的'变形'，他亲眼经历过无数次"
+        }
+      ],
+      "exits": [
+        { "toScene": "scene_dawn", "condition": "玩家退出教堂，决定在黎明前做出选择" }
+      ]
+    },
+    {
+      "id": "scene_dawn",
+      "name": "三种黎明",
+      "description": "雾在天将亮时变得反常地稀薄 —— 你能看见东方海面那道暗红的破晓线了。这条线就是 Bramble 港今夜对你的最后通牒：在它彻底变白之前，你必须做出选择。\n\n身后教堂传来的吟唱已经从二楼客栈的水平节拍，扩散到整个镇子的窗户、巷口、烟囱、湿木门后；连灯塔信号也从'三短两长'变成了一种持续的、近乎期待的长鸣。\n\n你脑中只剩三条路：趁雾散前死命奔向码头唯一一条还可能驶离的小渔船；冲回教堂从内部砸碎那只螺旋祭坛；或者……走到祭坛前，主动把自己交出去。",
+      "mood": "ending",
+      "hints": [
+        "结局 A · 海上逃亡：你能开走那艘小渔船，但雾彻底散去后你会看见水面下有什么真的在跟着你 —— 余生每个夜里都会做同一个梦",
+        "结局 B · 砸毁祭坛：成功率取决于你之前是否看清螺旋含义 + 是否找到抗拒的少年作为内应；失败 = 被现场制服并送入海蚀洞",
+        "结局 C · 主动交出：你的肩胛骨开始隐隐发胀。第二天清晨，Bramble 港的镇民登记簿上多了一位新住户，姓名一栏写着你的名字 —— 笔迹却不像你自己的"
+      ],
+      "expectedChecks": [
+        {
+          "skill": "drive_auto",
+          "difficulty": "hard",
+          "reason": "结局 A：你不是渔民，能不能在雾里把一艘陌生小船开出礁石区？",
+          "onSuccess": {
+            "setFlags": { "escaped_by_sea": true },
+            "revealText": "你跌跌撞撞解开缆绳，发动机咳了三声才肯转起来。船头切开雾的瞬间，你听见身后整个镇子的吟唱猛地中断 —— 像被你的离去打断的呼吸。"
+          }
+        },
+        {
+          "skill": "intimidate",
+          "difficulty": "normal",
+          "reason": "结局 B：你能不能逼住祭坛前的镇民足够久，去砸碎那只螺旋？",
+          "onSuccess": {
+            "setFlags": { "destroyed_altar": true },
+            "revealText": "你抡起一把从壁炉旁顺来的铁烛台，狠狠一下砸在螺旋顶端。骨与贝壳碎裂的声音和镇民集体发出的、远远超过人类音域的尖啸同时响起 —— 然后是寂静。"
+          }
+        }
+      ],
+      "sanityTriggers": [
+        {
+          "trigger": "意识到你的肩胛骨开始隐隐发胀（无论选哪条路，这种怀疑都会跟你一辈子）",
+          "lossOnSuccess": 1,
+          "lossOnFailureRoll": "1d6",
+          "description": "你不确定那是真的，还是 Bramble 港在你心里种下的最后一颗钉子"
+        }
+      ],
+      "exits": []
+    }
+  ],
+  "npcs": [
+    {
+      "id": "hattie_gilman",
+      "name": "Hattie · Gilman 客栈老板娘",
+      "persona": "约 50 岁，外表是个朴实的渔家主妇，但耳后有一片光滑发白、形状像鳃裂的皮肤补丁。她对外人过分熟练 —— 像是已经接待过很多'最后一晚的客人'。她并不主动加害，但也绝不会帮你逃离；她的角色是'让你以为这里只是个奇怪的小镇'，直到为时已晚。",
+      "initialAttitude": 10
+    },
+    {
+      "id": "struggling_boy",
+      "name": "教堂角落的少年",
+      "persona": "约 15 岁，肩胛骨之间有一块正在生长的凸起，他在用指甲反复抠它、试图阻止它继续长。镇上唯一还'保有人类恐惧'的人。如果玩家能不被发现地接近他，他可能成为砸毁祭坛的内应；但他自己已经放弃逃跑（'我的母亲是 Hattie，我跑不掉的'）。",
+      "initialAttitude": 40
+    },
+    {
+      "id": "lighthouse_signal",
+      "name": "灯塔的非人节奏",
+      "persona": "贯穿全剧的'背景威胁'。灯塔不是 NPC, 但它的'三短两长'信号节奏是整个仪式的心跳。玩家任何时候停下来听，都能感觉到这个节奏正在拉拢镇子。无法对话。",
+      "initialAttitude": -50
+    }
+  ]
+}
