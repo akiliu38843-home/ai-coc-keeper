@@ -8,6 +8,7 @@
 // 默认 scenario：src/scenarios/library-demo.json
 
 import { readFile, writeFile, copyFile, access } from 'node:fs/promises';
+import { updateWebGalConfig } from '../src/adapter/webgal-config.js';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadScenarioFromJson } from '../src/engine/scenario-validator.js';
@@ -329,6 +330,12 @@ async function main(): Promise<void> {
 
   console.log(`\n🔨 构建 WebGAL game...`);
   const built = buildScenarioGame(scenario, perSceneActions, perSceneTransitions, perSceneInScene, { character: char });
+
+  // 同时更新 config.txt 让 WebGAL 标题栏跟随 scenario.title
+  const configPath = join(WEBGAL_SCENE_DIR, '..', 'config.txt');
+  await backupIfNeeded(configPath);
+  await updateWebGalConfig(configPath, { gameName: scenario.title });
+  console.log(`🏷  WebGAL 标题更新为: ${scenario.title}`);
 
   const startTxtPath = join(WEBGAL_SCENE_DIR, 'start.txt');
   await backupIfNeeded(startTxtPath);

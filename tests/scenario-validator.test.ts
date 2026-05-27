@@ -22,7 +22,7 @@ describe('validateScenario · 真实 library demo 通过校验', () => {
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.scenario.title).toBe('失踪的馆长');
-      expect(result.scenario.scenes.length).toBe(3);
+      expect(result.scenario.scenes.length).toBe(6);
       expect(result.scenario.startSceneId).toBe('scene_entrance');
     }
   });
