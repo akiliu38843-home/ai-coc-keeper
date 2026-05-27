@@ -234,17 +234,32 @@ export class LlmAdapter {
     this.history = [];
   }
 
-  /** 进入新场景：把 system prompt + 场景上下文压进历史 */
+  /**
+   * 进入新场景。
+   *
+   * - 第一次调用 (history 为空): 注入 system prompt + 场景上下文
+   * - 后续调用 (history 已有): 不重置, 只追加"进入新场景 X"消息,
+   *   让 LLM 看得到前面 scene 的对话流, 写出更连贯的叙事
+   * - 想强制重置历史 (新 session): 先调 resetHistory()
+   */
   async enterScene(
     sceneContextParams: BuildSceneContextParams,
   ): Promise<LlmAction> {
-    this.history = [
-      { role: 'system', content: SYSTEM_PROMPT_NARRATOR },
-      {
+    const ctx = buildSceneContext(sceneContextParams);
+    if (this.history.length === 0) {
+      // 首次进场: 完整 system + user
+      this.history = [
+        { role: 'system', content: SYSTEM_PROMPT_NARRATOR },
+        { role: 'user', content: `${ctx}\n\n请以场景描述开始 narrate 这个场景。输出 JSON。` },
+      ];
+    } else {
+      // 后续进场: 追加, 保持对话流; trim 防膨胀
+      this.history.push({
         role: 'user',
-        content: `${buildSceneContext(sceneContextParams)}\n\n请以场景描述开始 ${'narrate'} 这个场景。输出 JSON。`,
-      },
-    ];
+        content: `[场景切换]\n${ctx}\n\n请以场景描述继续 narrate 这个新场景。注意 reflect 玩家之前的经历 / 选择 / 心智状态。输出 JSON。`,
+      });
+      this.trimHistory();
+    }
     const res = await this.provider.chat(this.history, {
       temperature: this.temperature,
       jsonMode: true,

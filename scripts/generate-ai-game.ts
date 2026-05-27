@@ -152,6 +152,12 @@ async function main(): Promise<void> {
   const perSceneTransitions = new Map<string, Map<number, LlmAction[]>>();
   const perSceneInScene = new Map<string, InSceneAction[]>();
 
+  // ★ 关键改造: 整本剧本共享 ONE narrative + ONE LlmAdapter,
+  // 让后续 scene narrate 看得到前面 scene 的"假定主路径"选择历史.
+  // 主路径 = 每个 scene 的 exits[0] (作者写 scenarios JSON 时把"最常见"的 exit 放第一).
+  const sharedNarrative = new InMemoryNarrativeState({ startSceneId: scenario.startSceneId });
+  const sharedAdapter = new LlmAdapter({ provider, historyLimit: 30 });
+
   /** 统一处理 HP 伤害: 返回 badge 字符串. */
   function applyHpDamage(dmgSpec: number | string, reason: string, physical = true): string {
     const amount = typeof dmgSpec === 'number' ? dmgSpec : rollDice(dmgSpec, rng);
@@ -197,14 +203,16 @@ async function main(): Promise<void> {
     return badge;
   }
 
-  // 每个 scene: 1) enterScene 拿主叙事 2) 每个 exit 跑 narrateTransition
+  // 假定的主路径:进 scene 时 narrative 当前位置 = scene.id (玩家"走"到这里)
   for (let i = 0; i < scenario.scenes.length; i++) {
     const scene = scenario.scenes[i]!;
     console.log(`[${i + 1}/${scenario.scenes.length}] LLM: ${scene.id} · ${scene.name}`);
-    const adapter = new LlmAdapter({ provider });
-    const ns = new InMemoryNarrativeState({ startSceneId: scene.id });
+    // 把 narrative 跳到当前 scene (会自动加 visited)
+    sharedNarrative.jumpToScene(scene.id);
+    const adapter = sharedAdapter;
+    const ns = sharedNarrative;
 
-    // 1) 场景主叙事
+    // 1) 场景主叙事 (LLM 看到 visitedScenes + choiceHistory + 角色状态)
     try {
       const action = await adapter.enterScene({
         scenario: { id: scenario.id, title: scenario.title, setting: scenario.setting },
@@ -325,6 +333,12 @@ async function main(): Promise<void> {
         await new Promise((r) => setTimeout(r, 300));
       }
       if (sceneTrans.size > 0) perSceneTransitions.set(scene.id, sceneTrans);
+    }
+
+    // ★ 走完此 scene 后, log "假定主路径"选择 (exits[0] 作为主路径),
+    // 让下一 scene 看得到 "玩家通过 X 选项过来" 的历史
+    if (scene.exits && scene.exits.length > 0) {
+      sharedNarrative.logChoice(`exit_0`, scene.exits[0]!.condition);
     }
   }
 
