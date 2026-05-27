@@ -1,0 +1,163 @@
+/* ============================================================
+ * AI-COC-Keeper · 克苏鲁风深色主题
+ * 注入到 WebGAL 的 userStyleSheet.css
+ * 设计意图: 旧纸 / 烟熏 / 油灯 + 偶尔的暗红警告
+ * ========================================================== */
+
+:root {
+  --cthk-ink:        #d8c9a6;   /* 主文字 · 旧纸上的淡墨 */
+  --cthk-ink-dim:    #a89578;   /* 弱化文字 */
+  --cthk-paper:      #15110b;   /* 纸面底色 · 烟熏的暗 */
+  --cthk-paper-2:    #211a10;   /* 略浅一档, 作 hover 用 */
+  --cthk-amber:      #b89559;   /* 油灯黄铜 */
+  --cthk-blood:      #8b2c1f;   /* 警示红 · 暗血 */
+  --cthk-blood-bri:  #c44537;   /* 高亮血红 */
+  --cthk-border:     #3a2e1c;   /* 木框 */
+  --cthk-glow:       0 0 12px rgba(184, 149, 89, 0.35);
+  --cthk-shadow:     0 4px 24px rgba(0, 0, 0, 0.85);
+}
+
+/* ----- 文字框 ----- */
+[class*="TextBox_main"] {
+  background: linear-gradient(
+    180deg,
+    rgba(21, 17, 11, 0.92) 0%,
+    rgba(15, 11, 7, 0.96) 100%
+  ) !important;
+  border-top: 1px solid var(--cthk-border) !important;
+  box-shadow: var(--cthk-shadow) !important;
+  backdrop-filter: blur(6px);
+}
+
+[class*="TextBox_Background"] {
+  opacity: 0 !important;  /* 隐藏默认配图背景, 让我们的 gradient 直出 */
+}
+
+[class*="TextBox_textElement"],
+[class*="TextBox_textElement_Settled"] {
+  color: var(--cthk-ink) !important;
+  font-family: "Noto Serif SC", "Songti SC", "STSong", "Source Han Serif",
+               "Times New Roman", serif !important;
+  letter-spacing: 0.04em !important;
+  line-height: 1.85 !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+[class*="TextBox_showName"],
+[class*="nameContainer"] {
+  color: var(--cthk-amber) !important;
+  font-family: "Noto Serif SC", "Songti SC", "STSong", serif !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.08em !important;
+  text-shadow: 0 0 8px rgba(184, 149, 89, 0.4);
+}
+
+[class*="TextBox_ShowName_Background"] {
+  opacity: 0 !important;
+}
+
+/* ----- 选项按钮 (Choose) ----- */
+[class*="Choose_Main"] {
+  gap: 12px !important;
+}
+
+[class*="Choose_item"] {
+  background: linear-gradient(
+    180deg,
+    rgba(33, 26, 16, 0.94) 0%,
+    rgba(21, 17, 11, 0.98) 100%
+  ) !important;
+  border: 1px solid var(--cthk-border) !important;
+  border-radius: 2px !important;
+  color: var(--cthk-ink) !important;
+  font-family: "Noto Serif SC", "Songti SC", serif !important;
+  letter-spacing: 0.06em !important;
+  padding: 14px 22px !important;
+  position: relative;
+  transition: all 0.25s ease !important;
+  box-shadow: inset 0 0 0 1px rgba(184, 149, 89, 0.08);
+}
+
+[class*="Choose_item"]:hover {
+  border-color: var(--cthk-amber) !important;
+  color: #f4e8c8 !important;
+  background: linear-gradient(
+    180deg,
+    rgba(58, 46, 28, 0.95) 0%,
+    rgba(33, 26, 16, 0.98) 100%
+  ) !important;
+  box-shadow: var(--cthk-glow), inset 0 0 0 1px rgba(184, 149, 89, 0.3) !important;
+  transform: translateX(2px);
+}
+
+[class*="Choose_item_disabled"] {
+  opacity: 0.35 !important;
+  color: var(--cthk-ink-dim) !important;
+  border-color: #2a2118 !important;
+  background: rgba(15, 11, 7, 0.6) !important;
+}
+
+[class*="Choose_item_disabled"]:hover {
+  transform: none !important;
+  border-color: #2a2118 !important;
+  box-shadow: none !important;
+}
+
+/* ----- 标题界面 ----- */
+[class*="title_"] [class*="enter"] {
+  color: var(--cthk-amber) !important;
+  letter-spacing: 0.2em !important;
+}
+
+/* ----- 底部控制栏 ----- */
+[class*="bottomControlPanel"] {
+  filter: sepia(0.2) hue-rotate(-10deg) brightness(0.85);
+}
+
+/* ----- Backlog (历史回放) ----- */
+[class*="backlog"] {
+  background: linear-gradient(
+    180deg,
+    rgba(15, 11, 7, 0.94) 0%,
+    rgba(8, 6, 4, 0.98) 100%
+  ) !important;
+}
+
+[class*="backlogItem"] {
+  border-bottom: 1px solid var(--cthk-border) !important;
+  color: var(--cthk-ink) !important;
+}
+
+/* ----- 全局滚动条 ----- */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--cthk-paper);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--cthk-border);
+  border-radius: 0;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--cthk-amber);
+}
+
+/* ----- 微弱的画面颗粒感 (整个游戏舞台) ----- */
+[class*="stage_"]::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.08 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  mix-blend-mode: overlay;
+  opacity: 0.5;
+  z-index: 9999;
+}
+
+/* ----- 旁白发言者用斜体, 区分于角色对话 ----- */
+[class*="TextBox_showName"]:has(+ *) {
+  font-style: normal;
+}
+/* 当 nameTextBox 内容是"旁白"时, 减弱视觉权重 (这是 attribute-based hack, 后续可加 className) */

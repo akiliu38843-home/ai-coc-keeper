@@ -15,6 +15,7 @@ import { fileURLToPath } from 'node:url';
 import { loadScenarioFromJson } from '../src/engine/scenario-validator.js';
 import { buildScenarioGame } from '../src/adapter/webgal-script-builder.js';
 import { updateWebGalConfig } from '../src/adapter/webgal-config.js';
+import { installWebgalTheme } from '../src/adapter/install-theme.js';
 import { listCharacters, loadCharacter } from '../src/character/save-load.js';
 import type { Character } from '../src/types/character.js';
 import type { Scenario } from '../src/types/scenario.js';
@@ -116,6 +117,8 @@ async function main(): Promise<void> {
   const configPath = join(WEBGAL_SCENE_DIR, '..', 'config.txt');
   await backupIfNeeded(configPath);
   await updateWebGalConfig(configPath, { gameName: 'ai-coc-keeper · 单人本平台' });
+
+  await installWebgalTheme(PROJECT_ROOT);
 
   console.log(`\n✅ 完成 · 浏览器刷新看启动选择器`);
 }

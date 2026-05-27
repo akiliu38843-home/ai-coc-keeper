@@ -9,6 +9,7 @@
 
 import { readFile, writeFile, copyFile, access } from 'node:fs/promises';
 import { updateWebGalConfig } from '../src/adapter/webgal-config.js';
+import { installWebgalTheme } from '../src/adapter/install-theme.js';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadScenarioFromJson } from '../src/engine/scenario-validator.js';
@@ -388,6 +389,9 @@ async function main(): Promise<void> {
   await writeFile(startTxtPath, fullContent, 'utf-8');
   console.log(`✏️  写入 ${startTxtPath}`);
   console.log(`   ${fullContent.length} 字符 · ${perSceneActions.size}/${scenario.scenes.length} 场景含 AI 叙事`);
+
+  await installWebgalTheme(PROJECT_ROOT);
+
   console.log(`\n✅ 完成 · 浏览器刷新 http://localhost:3000/ 看效果`);
 }
 
