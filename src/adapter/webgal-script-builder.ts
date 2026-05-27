@@ -127,6 +127,8 @@ export interface SceneSectionOptions {
   background?: string;
   /** BGM 文件名 */
   bgm?: string;
+  /** label 前缀（多剧本 launcher 时用，避免不同 scenario 间 label 冲突）*/
+  labelPrefix?: string;
   /**
    * 每个 exit 的过渡叙事（W8.3-mini）。
    * key: 该 scene exits[] 数组里的 index
@@ -141,11 +143,17 @@ export interface SceneSectionOptions {
   inSceneActions?: ReadonlyArray<InSceneAction>;
 }
 
+/** 加 prefix 到 label name（避免多 scenario 冲突）*/
+function pfx(name: string, prefix?: string): string {
+  return prefix ? `${prefix}__${name}` : name;
+}
+
 export function sceneToWebgalSection(
   scene: Scene,
   opts: SceneSectionOptions = {},
 ): string {
-  const lines: string[] = [`label:${scene.id};`];
+  const p = opts.labelPrefix;
+  const lines: string[] = [`label:${pfx(scene.id, p)};`];
 
   // 背景 / BGM
   if (opts.background ?? scene.background) {
@@ -173,7 +181,7 @@ export function sceneToWebgalSection(
   }
 
   // 选项菜单 label（行动后 loop 回这里）
-  const choicesLabel = `${scene.id}_choices`;
+  const choicesLabel = pfx(`${scene.id}_choices`, p);
   lines.push('');
   lines.push(`label:${choicesLabel};`);
 
@@ -181,14 +189,14 @@ export function sceneToWebgalSection(
   const choiceParts: string[] = [];
   if (opts.inSceneActions) {
     opts.inSceneActions.forEach((a, i) => {
-      choiceParts.push(`${escapeForWebgal(a.label)}:${inSceneActionLabelName(scene.id, i)}`);
+      choiceParts.push(`${escapeForWebgal(a.label)}:${pfx(inSceneActionLabelName(scene.id, i), p)}`);
     });
   }
   if (scene.exits) {
     scene.exits.forEach((e, i) => {
       const target = opts.transitionActions?.has(i)
-        ? transitionLabelName(scene.id, i)
-        : e.toScene;
+        ? pfx(transitionLabelName(scene.id, i), p)
+        : pfx(e.toScene, p);
       choiceParts.push(`${escapeForWebgal(e.condition)}:${target}`);
     });
   }
@@ -198,7 +206,7 @@ export function sceneToWebgalSection(
   if (opts.inSceneActions) {
     for (const [i, action] of opts.inSceneActions.entries()) {
       lines.push('');
-      lines.push(`label:${inSceneActionLabelName(scene.id, i)};`);
+      lines.push(`label:${pfx(inSceneActionLabelName(scene.id, i), p)};`);
       lines.push(`${escapeForWebgal(action.resultNarrate)};`);
       lines.push(`jumpLabel:${choicesLabel};`);
     }
@@ -210,9 +218,9 @@ export function sceneToWebgalSection(
       const transActs = opts.transitionActions.get(i);
       if (transActs && transActs.length > 0) {
         lines.push('');
-        lines.push(`label:${transitionLabelName(scene.id, i)};`);
+        lines.push(`label:${pfx(transitionLabelName(scene.id, i), p)};`);
         lines.push(...transActs.flatMap((a) => actionToWebgalLines(a)));
-        lines.push(`jumpLabel:${exit.toScene};`);
+        lines.push(`jumpLabel:${pfx(exit.toScene, p)};`);
       }
     }
   }
@@ -286,6 +294,8 @@ export interface BuildScenarioGameResult {
 export interface BuildScenarioGameInputOptions {
   /** 把角色信息显示在游戏开场（W10 新增）*/
   character?: Character;
+  /** label 前缀（多剧本 launcher 时避免 label 冲突）*/
+  labelPrefix?: string;
 }
 
 export function buildScenarioGame(
@@ -295,6 +305,7 @@ export function buildScenarioGame(
   perSceneInSceneActions: Map<string, ReadonlyArray<InSceneAction>> = new Map(),
   opts: BuildScenarioGameInputOptions = {},
 ): BuildScenarioGameResult {
+  const p = opts.labelPrefix;
   // start.txt：开场 intro → jumpLabel 到起点
   const introLines = buildIntroSection(scenario, opts.character);
   const startTxt = [
@@ -302,21 +313,22 @@ export function buildScenarioGame(
     `;${scenario.setting}`,
     `setVar:scenarioId="${scenario.id}";`,
     ...introLines,
-    `jumpLabel:${scenario.startSceneId};`,
+    `jumpLabel:${p ? `${p}__${scenario.startSceneId}` : scenario.startSceneId};`,
   ].join('\n');
 
   // 所有 scenes 写到一个文件里（用 label 区分），简化 routing
   const sceneFiles = new Map<string, string>();
   const allScenesTxt = scenario.scenes
     .map((s) => {
-      const opts: SceneSectionOptions = {};
+      const sceneOpts: SceneSectionOptions = {};
+      if (p) sceneOpts.labelPrefix = p;
       const actions = perSceneActions.get(s.id);
-      if (actions !== undefined) opts.actions = actions;
+      if (actions !== undefined) sceneOpts.actions = actions;
       const trans = perSceneTransitions.get(s.id);
-      if (trans !== undefined) opts.transitionActions = trans;
+      if (trans !== undefined) sceneOpts.transitionActions = trans;
       const inScene = perSceneInSceneActions.get(s.id);
-      if (inScene !== undefined) opts.inSceneActions = inScene;
-      return sceneToWebgalSection(s, opts);
+      if (inScene !== undefined) sceneOpts.inSceneActions = inScene;
+      return sceneToWebgalSection(s, sceneOpts);
     })
     .join('\n\n');
   sceneFiles.set('scenes', allScenesTxt);
