@@ -22,6 +22,8 @@ import { recomputeDerivedStats } from '../src/types/character.js';
 import { rollCheck } from '../src/engine/skill-check.js';
 import { rollSanityCheck } from '../src/engine/sanity.js';
 import { rollInsanity } from '../src/engine/insanity-tables.js';
+import { applyDamage } from '../src/engine/damage.js';
+import { rollDice } from '../src/engine/dice.js';
 import { DefaultRng, type Rng } from '../src/engine/rng.js';
 import type { Character } from '../src/types/character.js';
 
@@ -149,6 +151,18 @@ async function main(): Promise<void> {
   const perSceneTransitions = new Map<string, Map<number, LlmAction[]>>();
   const perSceneInScene = new Map<string, InSceneAction[]>();
 
+  /** 统一处理 HP 伤害: 返回 badge 字符串. */
+  function applyHpDamage(dmgSpec: number | string, reason: string, physical = true): string {
+    const amount = typeof dmgSpec === 'number' ? dmgSpec : rollDice(dmgSpec, rng);
+    if (amount <= 0) return '';
+    const result = applyDamage(char, { amount, source: reason, physical });
+    let badge = `[HP -${result.actualDamage} → ${char.currentHp}/${char.maxHp}]`;
+    if (result.triggeredConditions.includes('major_wound')) badge += ' [重伤]';
+    if (result.triggeredConditions.includes('unconscious')) badge += ' [昏迷]';
+    if (result.triggeredConditions.includes('dying')) badge += ' [濒死]';
+    return badge;
+  }
+
   /** 统一处理 sanity 损失: 累计 / 临时 / 长期触发. 返回 badge 字符串. */
   function applySanity(actualLoss: number, reason: string): string {
     if (actualLoss <= 0) return '';
@@ -254,7 +268,7 @@ async function main(): Promise<void> {
           baseNarrate = a.resultNarrate;
         }
 
-        // 2) 处理可选的 sanityCost (跨 scene 状态追踪 E 阶段)
+        // 2a) 处理可选的 sanityCost
         let sanityBadge = '';
         if (a.sanityCost) {
           const sanResult = rollSanityCheck({
@@ -267,7 +281,16 @@ async function main(): Promise<void> {
           if (badge) sanityBadge = ' ' + badge;
         }
 
-        const fullBadge = skillBadge + sanityBadge;
+        // 2b) 处理可选的 damageCost
+        let damageBadge = '';
+        if (a.damageCost) {
+          // 通过 check 取 onSuccess (闪避成功仍可能小伤), 否则 onFailure
+          const dmgSpec = checkSucceeded ? a.damageCost.onSuccess : a.damageCost.onFailure;
+          const badge = applyHpDamage(dmgSpec, a.label, a.damageCost.physical ?? true);
+          if (badge) damageBadge = ' ' + badge;
+        }
+
+        const fullBadge = skillBadge + sanityBadge + damageBadge;
         const prefix = fullBadge.trim() ? `${fullBadge.trim()} ` : '';
         // 防双空格 + 用 checkSucceeded 抑制 lint 警告
         void checkSucceeded;

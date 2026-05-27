@@ -20,7 +20,7 @@ import {
 import type { Difficulty as DifficultyTy } from '../types/rules.js';
 
 export type SuggestedAction =
-  | { kind: 'simple'; label: string; resultNarrate: string; sanityCost?: SanityCostSpec }
+  | { kind: 'simple'; label: string; resultNarrate: string; sanityCost?: SanityCostSpec; damageCost?: DamageCostSpec }
   | {
       kind: 'check';
       label: string;
@@ -28,6 +28,7 @@ export type SuggestedAction =
       successNarrate: string;
       failNarrate: string;
       sanityCost?: SanityCostSpec;
+      damageCost?: DamageCostSpec;
     };
 
 /** 心智耗损规格 "X/YdZ" 风格 (COC 7e) */
@@ -38,14 +39,25 @@ export interface SanityCostSpec {
   onFailure: string | number;
 }
 
+/** HP 伤害规格 */
+export interface DamageCostSpec {
+  /** 通过 (e.g. 闪避成功) 时伤害（数字或骰子记法）*/
+  onSuccess: string | number;
+  /** 失败时伤害 */
+  onFailure: string | number;
+  /** 是否物理伤害（影响重伤判定）*/
+  physical?: boolean;
+}
+
 function parseSuggestedAction(raw: unknown): SuggestedAction[] {
   if (typeof raw !== 'object' || raw === null) return [];
   const o = raw as Record<string, unknown>;
   if (typeof o['label'] !== 'string') return [];
   const label = o['label'] as string;
 
-  // 解析可选 sanityCost
+  // 解析可选 sanityCost / damageCost
   const sanityCost = parseSanityCost(o['sanityCost']);
+  const damageCost = parseDamageCost(o['damageCost']);
 
   // 含 check 字段 → check 型
   const check = o['check'];
@@ -68,6 +80,7 @@ function parseSuggestedAction(raw: unknown): SuggestedAction[] {
       failNarrate: o['failNarrate'] as string,
     };
     if (sanityCost) action.sanityCost = sanityCost;
+    if (damageCost) action.damageCost = damageCost;
     return [action];
   }
 
@@ -75,6 +88,7 @@ function parseSuggestedAction(raw: unknown): SuggestedAction[] {
   if (typeof o['resultNarrate'] === 'string') {
     const action: SuggestedAction = { kind: 'simple', label, resultNarrate: o['resultNarrate'] as string };
     if (sanityCost) action.sanityCost = sanityCost;
+    if (damageCost) action.damageCost = damageCost;
     return [action];
   }
   return [];
@@ -87,6 +101,18 @@ function parseSanityCost(raw: unknown): SanityCostSpec | null {
   const onFail = o['onFailure'];
   if (typeof onFail !== 'string' && typeof onFail !== 'number') return null;
   return { onSuccess: o['onSuccess'] as number, onFailure: onFail };
+}
+
+function parseDamageCost(raw: unknown): DamageCostSpec | null {
+  if (typeof raw !== 'object' || raw === null) return null;
+  const o = raw as Record<string, unknown>;
+  const onSucc = o['onSuccess'];
+  const onFail = o['onFailure'];
+  if ((typeof onSucc !== 'string' && typeof onSucc !== 'number') ||
+      (typeof onFail !== 'string' && typeof onFail !== 'number')) return null;
+  const spec: DamageCostSpec = { onSuccess: onSucc, onFailure: onFail };
+  if (typeof o['physical'] === 'boolean') spec.physical = o['physical'];
+  return spec;
 }
 
 // ─── LlmAction 类型 ──────────────────────────────────
@@ -271,7 +297,11 @@ export class LlmAdapter {
    - onSuccess: 通过 SAN check 时损失（数字，COC 惯例 0 或 1）
    - onFailure: 失败时损失（"1d2" / "1d4" / "1d6" 等记法）
    - 强度参考: 不寻常的细节 0/1d2 / 怪异污渍 0/1d3 / 尸体 0/1d4 / 怪物 1/1d6+ / Cthulhu 级 1d10/1d100
-8. **不要每个行动都加 sanityCost** —— 4 个里 0-2 个有就够, 让恐怖有节制
+8. **如果行动有 HP 受伤风险**（搏斗 / 被击中 / 摔倒 / 烧伤 / 被锁链拖拽 / 触碰危险机关）—— 加 damageCost:
+   - onSuccess: 闪避/dodge 成功时也可能小伤 (0 或 "1d2")
+   - onFailure: 失败时伤害 ("1d3" 摔擦 / "1d4" 拳脚 / "1d6" 刀棍 / "1d8" 重击 / "1d10+" 致命)
+   - physical: true (默认), 非物理 (毒气 / 火焰窒息) 设 false
+9. **不要每个行动都加 cost** —— 4 个里 0-2 个有就够, 让代价有节制. cost 字段都是可选的, 大部分行动只用 resultNarrate
 
 【输出 JSON schema】 (严格 JSON, 不带 markdown wrapper)
 {
@@ -280,6 +310,9 @@ export class LlmAdapter {
       "sanityCost": { "onSuccess": 0, "onFailure": "1d2" } },
     { "label": "撬抽屉", "check": { "skill": "locksmith", "difficulty": "hard" },
       "successNarrate": "锁芯咔哒一声...", "failNarrate": "撬棒滑脱..." },
+    { "label": "硬挡一刀", "check": { "skill": "fighting", "difficulty": "normal" },
+      "successNarrate": "...", "failNarrate": "...",
+      "damageCost": { "onSuccess": "1d3", "onFailure": "1d6", "physical": true } },
     ...
   ]
 }`;
