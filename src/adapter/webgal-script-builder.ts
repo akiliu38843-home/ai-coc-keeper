@@ -141,6 +141,53 @@ export interface SceneSectionOptions {
    * 玩家点选 → 看到 resultNarrate → 回到该 scene 的选项菜单（不跳 scene）
    */
   inSceneActions?: ReadonlyArray<InSceneAction>;
+  /**
+   * 这个 scene 在剧本里的序号（从 1 开始），用于章节卡 intro。
+   * 不传则不显示"第 N 幕"前缀。
+   */
+  sceneIndex?: number;
+}
+
+const CHINESE_DIGITS = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
+function toChineseDigit(n: number): string {
+  if (n <= 10) return CHINESE_DIGITS[n] ?? String(n);
+  if (n < 20) return `十${CHINESE_DIGITS[n - 10]}`;
+  return String(n);
+}
+
+/**
+ * mood → intro 卡片字体颜色 (RGBA)。
+ * 配色跟 userStyleSheet.css 的 --cthk-* 调色板对齐：
+ *   calm/mystery → 旧纸黄 (#d8c9a6)
+ *   tension      → 暖琥珀 (#dcb46e)
+ *   horror/climax → 暗血红 (#c44537)
+ *   ending       → 灰烬 (#a89578)
+ */
+function moodIntroColor(mood: SceneMood | undefined): string {
+  switch (mood) {
+    case 'tension':         return 'rgba(220, 180, 110, 1)';
+    case 'horror':
+    case 'climax':          return 'rgba(196, 69, 55, 1)';
+    case 'ending':          return 'rgba(168, 149, 120, 1)';
+    case 'calm':
+    case 'mystery':
+    default:                return 'rgba(216, 201, 166, 1)';
+  }
+}
+
+/**
+ * 生成 scene 开场的 intro 章节卡。
+ * 形式: `intro:第 X 幕|<scene.name> -animation=fadeIn -delayTime=2200 -fontColor=... -fontSize=medium;`
+ *   - 用 fadeIn 动画 (1.5s 淡入)
+ *   - 每行 delayTime=2200ms, 2 行总停留约 4.4s + endWait 1s ≈ 5.4s
+ *   - 玩家点击可提前推进
+ */
+function buildSceneIntroLine(scene: Scene, sceneIndex: number | undefined): string | null {
+  if (sceneIndex === undefined) return null;
+  const actLabel = `第 ${toChineseDigit(sceneIndex)} 幕`;
+  const subtitle = escapeForWebgal(scene.name);
+  const color = moodIntroColor(scene.mood);
+  return `intro:${actLabel}|${subtitle} -animation=fadeIn -delayTime=2200 -fontColor=${color} -fontSize=medium;`;
 }
 
 /** 加 prefix 到 label name（避免多 scenario 冲突）*/
@@ -154,6 +201,10 @@ export function sceneToWebgalSection(
 ): string {
   const p = opts.labelPrefix;
   const lines: string[] = [`label:${pfx(scene.id, p)};`];
+
+  // 章节卡 (intro): 黑底淡入 "第 X 幕" + scene 名, 强化"翻页"感
+  const introLine = buildSceneIntroLine(scene, opts.sceneIndex);
+  if (introLine) lines.push(introLine);
 
   // 背景 / BGM
   if (opts.background ?? scene.background) {
@@ -319,8 +370,8 @@ export function buildScenarioGame(
   // 所有 scenes 写到一个文件里（用 label 区分），简化 routing
   const sceneFiles = new Map<string, string>();
   const allScenesTxt = scenario.scenes
-    .map((s) => {
-      const sceneOpts: SceneSectionOptions = {};
+    .map((s, i) => {
+      const sceneOpts: SceneSectionOptions = { sceneIndex: i + 1 };
       if (p) sceneOpts.labelPrefix = p;
       const actions = perSceneActions.get(s.id);
       if (actions !== undefined) sceneOpts.actions = actions;
