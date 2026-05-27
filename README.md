@@ -74,24 +74,47 @@ ai-coc-keeper/
 ## 跑测试 / 跑 console demo
 
 ```bash
-# 装依赖
 npm install
+npm test               # 单测 (152+)
+npm run typecheck      # TS strict check
 
-# 跑单测（应 83/83 全过）
-npm test
-
-# 严格 TS 类型检查
-npm run typecheck
-
-# 跑端到端 console demo（需要 LLM API key）
-#   1. 拷贝 .env.example → .env，填入 LLM_BASE_URL/LLM_API_KEY/LLM_MODEL
-#   2. 运行：
+# 端到端 console demo (需要 .env 含 LLM_BASE_URL/API_KEY/MODEL)
 npm run demo
 ```
 
-`.env` 已在 `.gitignore` 里，**永不入 git**。
+`.env` 已在 `.gitignore` 里，**永不入 git**。任何 OpenAI 兼容 endpoint（OpenAI / DeepSeek / Anthropic / uyilink 之类聚合器）都行。
 
-支持的 provider：任何 OpenAI 兼容的 endpoint（OpenAI / DeepSeek / Anthropic-via-proxy / 各种聚合器 e.g. uyilink）。
+## 完整 galgame 体验
+
+```bash
+# 1) 创建调查员（CLI 向导：投点 / 选职业 / 分技能）
+npm run create:character
+
+# 2) 跑 WebGAL dev server (一直挂着, 终端 1)
+cd external/WebGAL && yarn dev   # 起在 :3300
+
+# 3) 生成 AI 叙事 + WebGAL 文件 (终端 2)
+npm run gen:ai-game src/scenarios/library-demo.json
+
+# 4) 浏览器 :3300 看效果
+```
+
+## 生产构建 / 部署
+
+```bash
+# 生成静态站到 external/WebGAL/packages/webgal/dist/
+npm run build:dist
+
+# 本机用 python http server 看 dist 效果
+npm run serve:dist
+# 浏览器 → http://localhost:4300/
+```
+
+`dist/` 是纯静态文件 —— 可以扔到任何静态站托管：
+- **Vercel / Netlify**：把 `dist/` 拖进去就行
+- **GitHub Pages**：commit dist 到 `gh-pages` 分支
+- **Cloudflare Pages**：连 git 仓库自动部署
+- **本机 nginx / Caddy**：直接 root 指向 dist/
 
 ## V0 里程碑（10 周）
 

@@ -329,6 +329,11 @@ async function main(): Promise<void> {
   }
 
   console.log(`\n🔨 构建 WebGAL game...`);
+  // 重置 char 状态为初始值再传给 builder（intro 应显示 60/60，不是被 mutate 过的最终值）
+  char.currentSanity = char.maxSanity;
+  char.currentHp = char.maxHp;
+  char.currentMp = char.maxMp;
+  char.conditions = [];
   const built = buildScenarioGame(scenario, perSceneActions, perSceneTransitions, perSceneInScene, { character: char });
 
   // 同时更新 config.txt 让 WebGAL 标题栏跟随 scenario.title

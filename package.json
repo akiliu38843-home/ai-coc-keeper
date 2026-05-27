@@ -13,7 +13,9 @@
     "parse:multi": "node --env-file=.env --import tsx scripts/parse-scenario-multi.ts",
     "build:webgal": "node --import tsx scripts/build-webgal-game.ts",
     "gen:ai-game": "node --env-file=.env --import tsx scripts/generate-ai-game.ts",
-    "create:character": "node --import tsx scripts/create-character.ts"
+    "create:character": "node --import tsx scripts/create-character.ts",
+    "build:dist": "cd external/WebGAL && yarn build && cd ../.. && echo '✅ dist 在 external/WebGAL/packages/webgal/dist/'",
+    "serve:dist": "python3 -m http.server 4300 --directory external/WebGAL/packages/webgal/dist"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
