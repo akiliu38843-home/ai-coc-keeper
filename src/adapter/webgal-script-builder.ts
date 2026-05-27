@@ -24,6 +24,8 @@
 
 import type { LlmAction } from '../llm/adapter.js';
 import type { Scene, Scenario } from '../types/scenario.js';
+import type { Character } from '../types/character.js';
+import { skillTotal } from '../types/character.js';
 
 // ─── 字符串转义（WebGAL 不爱 ; 和 : ) ─────────────────
 
@@ -202,6 +204,45 @@ function transitionLabelName(fromSceneId: string, exitIndex: number): string {
   return `trans_${fromSceneId}_${exitIndex}`;
 }
 
+/**
+ * 游戏开场 intro 段：显示剧本标题 / 设定 + 玩家角色信息
+ * 返回 WebGAL 行数组（不带 label 包裹，调用方拼到 startTxt 里）
+ */
+function buildIntroSection(scenario: Scenario, character?: Character): string[] {
+  const lines: string[] = [];
+
+  // 标题 + 设定
+  lines.push(`旁白:${escapeForWebgal(`《${scenario.title}》`)} -fontSize=large;`);
+  lines.push(`旁白:${escapeForWebgal(scenario.setting)};`);
+
+  // 角色卡信息
+  if (character) {
+    const gender = character.gender ? ` (${character.gender})` : '';
+    lines.push(`旁白:${escapeForWebgal(
+      `你将扮演 —— ${character.name}${gender}，${character.age} 岁，${character.occupation}。`,
+    )};`);
+
+    // 派生属性快报
+    lines.push(`旁白:${escapeForWebgal(
+      `HP ${character.currentHp}/${character.maxHp}  |  心智度 ${character.currentSanity}/${character.maxSanity}  |  幸运 ${character.luck}`,
+    )};`);
+
+    // 主要技能（前 5 个非零 occupational）
+    const topSkills = Array.from(character.skills.values())
+      .filter((s) => s.occupational > 0)
+      .sort((a, b) => skillTotal(b) - skillTotal(a))
+      .slice(0, 5);
+    if (topSkills.length > 0) {
+      const skillText = topSkills.map((s) => `${s.name} ${skillTotal(s)}`).join('  ');
+      lines.push(`旁白:${escapeForWebgal(`主要技能 —— ${skillText}`)};`);
+    }
+
+    lines.push(`旁白:${escapeForWebgal('深呼吸，你将独自面对接下来的一切。')};`);
+  }
+
+  return lines;
+}
+
 function inSceneActionLabelName(sceneId: string, actionIndex: number): string {
   return `act_${sceneId}_${actionIndex}`;
 }
@@ -222,17 +263,25 @@ export interface BuildScenarioGameResult {
  *   public/game/scene/start.txt
  *   public/game/scene/<sceneId>.txt
  */
+export interface BuildScenarioGameInputOptions {
+  /** 把角色信息显示在游戏开场（W10 新增）*/
+  character?: Character;
+}
+
 export function buildScenarioGame(
   scenario: Scenario,
   perSceneActions: Map<string, ReadonlyArray<LlmAction>> = new Map(),
   perSceneTransitions: Map<string, Map<number, ReadonlyArray<LlmAction>>> = new Map(),
   perSceneInSceneActions: Map<string, ReadonlyArray<InSceneAction>> = new Map(),
+  opts: BuildScenarioGameInputOptions = {},
 ): BuildScenarioGameResult {
-  // start.txt：直接 jumpLabel 到起点
+  // start.txt：开场 intro → jumpLabel 到起点
+  const introLines = buildIntroSection(scenario, opts.character);
   const startTxt = [
     `;${scenario.title}`,
     `;${scenario.setting}`,
     `setVar:scenarioId="${scenario.id}";`,
+    ...introLines,
     `jumpLabel:${scenario.startSceneId};`,
   ].join('\n');
 

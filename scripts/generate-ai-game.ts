@@ -224,7 +224,7 @@ async function main(): Promise<void> {
   }
 
   console.log(`\n🔨 构建 WebGAL game...`);
-  const built = buildScenarioGame(scenario, perSceneActions, perSceneTransitions, perSceneInScene);
+  const built = buildScenarioGame(scenario, perSceneActions, perSceneTransitions, perSceneInScene, { character: char });
 
   const startTxtPath = join(WEBGAL_SCENE_DIR, 'start.txt');
   await backupIfNeeded(startTxtPath);
