@@ -14,7 +14,7 @@ import { recomputeDerivedStats } from '../src/types/character.js';
 import type { Character } from '../src/types/character.js';
 import type { CheckResult } from '../src/types/rules.js';
 
-function makeChar(): Character {
+function makeChar(opts: { withInsanity?: boolean } = {}): Character {
   const c: Character = {
     id: 'c1', name: '林夏', occupation: '记者', age: 28,
     attributes: { STR: 50, DEX: 60, INT: 80, CON: 60, POW: 70, APP: 60, SIZ: 55, EDU: 80 },
@@ -23,7 +23,15 @@ function makeChar(): Character {
     luck: 60, movement: 0, dodge: 0, brawl: 0,
     skills: new Map(),
     inventory: [],
-    conditions: [],
+    conditions: opts.withInsanity ? [{
+      type: 'indef_insanity',
+      source: '看到 Cthulhu',
+      appliedAt: 0,
+      insanityDetail: {
+        kind: 'mania', id: 39, nameZh: '漂泊症', nameEn: 'Drapetomania',
+        description: '执着于逃离',
+      },
+    }] : [],
   };
   recomputeDerivedStats(c);
   c.currentHp = c.maxHp;
@@ -158,6 +166,20 @@ describe('buildSceneContext', () => {
     });
     expect(text).not.toContain('作者提示');
     expect(text).not.toContain('可能触发的检定');
+  });
+
+  it('character 含长期心智失常时, 加【探者当前状态】段', () => {
+    const ns = new InMemoryNarrativeState({ startSceneId: 's1' });
+    const text = buildSceneContext({
+      scenario: { id: 's', title: 'T', setting: 'X' },
+      scene: { id: 's1', name: 'N', description: 'D' },
+      character: makeChar({ withInsanity: true }),
+      narrative: ns,
+    });
+    expect(text).toContain('探者当前状态');
+    expect(text).toContain('漂泊症');
+    expect(text).toContain('Drapetomania');
+    expect(text).toContain('执着于逃离');
   });
 });
 

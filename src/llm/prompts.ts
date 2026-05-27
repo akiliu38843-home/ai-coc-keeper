@@ -28,6 +28,10 @@ export const SYSTEM_PROMPT_NARRATOR = `你是一个克苏鲁风单人本游戏�
 3. 你**永远不准擅自跳到剧本之外的场景**。只在剧本明确列出的场景间跳转。
 4. 你扮演 NPC 时要符合 NPC 的人设，但**不能透露玩家不该知道的剧本设定**。
 5. 描述要让人毛骨悚然但不直白血腥；克苏鲁风重点是"无名恐惧"，不是 splatter。
+6. **如果探者当前状态里列出了长期心智失常**（恐惧症/狂躁症），叙事时**要偶尔 reflect** 这个症状。
+   比如"漂泊症"会让探者总忍不住想逃；"火器恐惧症"看到枪会发抖。
+   **不要每段都提**，2-3 个 narrate 里有 1 次 subtle hint 即可。
+7. **重伤 / 昏迷 / 濒死** 状态时，探者的视野 / 行动应受限，叙事要体现身体衰弱。
 
 【输出格式】
 始终输出严格 JSON，结构如下：
@@ -62,7 +66,7 @@ export interface BuildSceneContextParams {
     /** 可触发的检定（作者预设的）*/
     expectedChecks?: { skill: string; difficulty: string; reason: string }[];
   };
-  character: Pick<Character, 'name' | 'occupation' | 'currentHp' | 'currentSanity' | 'maxHp' | 'maxSanity'>;
+  character: Pick<Character, 'name' | 'occupation' | 'currentHp' | 'currentSanity' | 'maxHp' | 'maxSanity' | 'conditions'>;
   narrative: NarrativeState;
   /** 最近 N 个选择历史 */
   recentChoicesLimit?: number;
@@ -78,6 +82,26 @@ export function buildSceneContext(p: BuildSceneContextParams): string {
     .map((c) => `  - 在场景 ${c.sceneId}：${c.text}`)
     .join('\n');
 
+  // 心智失常 / 重伤等状态
+  const conditions = p.character.conditions ?? [];
+  const conditionLines: string[] = [];
+  for (const c of conditions) {
+    if (c.type === 'indef_insanity' && c.insanityDetail) {
+      const kind = c.insanityDetail.kind === 'phobia' ? '恐惧症' : '狂躁症';
+      conditionLines.push(`  - 长期心智失常: ${kind}《${c.insanityDetail.nameZh}》(${c.insanityDetail.nameEn}) — ${c.insanityDetail.description}`);
+    } else if (c.type === 'temp_insanity') {
+      conditionLines.push(`  - 临时心智失常（来源: ${c.source}）`);
+    } else if (c.type === 'major_wound') {
+      conditionLines.push(`  - 重伤（来源: ${c.source}）`);
+    } else if (c.type === 'minor_wound') {
+      conditionLines.push(`  - 轻伤（来源: ${c.source}）`);
+    } else if (c.type === 'unconscious') {
+      conditionLines.push(`  - 昏迷`);
+    } else if (c.type === 'dying') {
+      conditionLines.push(`  - 濒死`);
+    }
+  }
+
   return `【剧本】${p.scenario.title}（${p.scenario.setting}）
 【当前场景】${p.scene.id} · ${p.scene.name}
 ${p.scene.description}
@@ -86,6 +110,7 @@ ${p.scene.description}
   - HP: ${p.character.currentHp}/${p.character.maxHp}
   - 心智度: ${p.character.currentSanity}/${p.character.maxSanity}
 
+${conditionLines.length > 0 ? `【探者当前状态】\n${conditionLines.join('\n')}\n` : ''}
 【最近选择】
 ${recentChoices || '  (尚无)'}
 
