@@ -13,6 +13,8 @@ import { fileURLToPath } from 'node:url';
 import { loadScenarioFromJson } from '../src/engine/scenario-validator.js';
 import { buildScenarioGame, type InSceneAction } from '../src/adapter/webgal-script-builder.js';
 import { buildSceneContext } from '../src/llm/prompts.js';
+import { loadCharacter, listCharacters } from '../src/character/save-load.js';
+import { skillTotal } from '../src/types/character.js';
 import { OpenAICompatibleProvider } from '../src/llm/openai-compatible.js';
 import { LlmAdapter, type LlmAction } from '../src/llm/adapter.js';
 import { InMemoryNarrativeState } from '../src/engine/in-memory-narrative-state.js';
@@ -32,6 +34,11 @@ const args = process.argv.slice(2);
 const scenarioPath = resolve(
   args[0] ?? join(PROJECT_ROOT, 'src/scenarios/library-demo.json'),
 );
+// 可选 --character <id>，不传就用默认 makeChar()
+let charIdArg: string | null = null;
+for (let i = 1; i < args.length; i++) {
+  if (args[i] === '--character' && args[i + 1]) charIdArg = args[++i]!;
+}
 
 const baseUrl = process.env['LLM_BASE_URL'];
 const apiKey = process.env['LLM_API_KEY'];
@@ -41,8 +48,11 @@ if (!baseUrl || !apiKey) {
   process.exit(1);
 }
 
-/** V0: 默认技能值表 (后续 W9 调查员向导生成真实角色卡时替换) */
-function skillTarget(skill: string): number {
+/**
+ * V0 fallback: 用默认技能值表（character 没传时用）
+ * 当 character 传入时优先用 character.skills 的真实 total
+ */
+function skillTargetFallback(skill: string): number {
   const presets: Record<string, number> = {
     spot_hidden: 60, listen: 50, library_use: 70, psychology: 50,
     locksmith: 30, dodge: 30, brawl: 60, sneak: 40, stealth: 40,
@@ -52,6 +62,15 @@ function skillTarget(skill: string): number {
     track: 30, jump: 25, swim: 25, throw: 25,
   };
   return presets[skill] ?? 40;
+}
+
+/** 用真实角色卡读 skill total，没有就回退到默认表 */
+function skillTargetFromCharacter(char: Character | null, skill: string): number {
+  if (char) {
+    const sk = char.skills.get(skill);
+    if (sk) return skillTotal(sk);
+  }
+  return skillTargetFallback(skill);
 }
 
 function makeChar(): Character {
@@ -91,7 +110,32 @@ async function main(): Promise<void> {
   const provider = new OpenAICompatibleProvider({
     baseUrl: baseUrl!, apiKey: apiKey!, model, timeoutMs: 60_000,
   });
-  const char = makeChar();
+
+  // 加载 character: 优先用 --character <id>，否则找最近一个 saved，否则默认
+  let char: Character;
+  if (charIdArg) {
+    try {
+      char = await loadCharacter(charIdArg);
+      console.log(`👤 已加载角色: ${char.name} (${char.occupation})`);
+    } catch (e) {
+      console.error(`❌ 加载角色 ${charIdArg} 失败: ${(e as Error).message}`);
+      process.exit(1);
+    }
+  } else {
+    // 试找最近 saved character
+    try {
+      const list = await listCharacters();
+      if (list.length > 0) {
+        char = await loadCharacter(list[0]!.id);
+        console.log(`👤 自动选最近角色: ${char.name} (${char.occupation})`);
+      } else {
+        char = makeChar();
+        console.log(`👤 无 saved 角色, 用默认: ${char.name} (${char.occupation})`);
+      }
+    } catch {
+      char = makeChar();
+    }
+  }
   const perSceneActions = new Map<string, LlmAction[]>();
   const perSceneTransitions = new Map<string, Map<number, LlmAction[]>>();
   const perSceneInScene = new Map<string, InSceneAction[]>();
@@ -140,10 +184,11 @@ async function main(): Promise<void> {
         if (a.kind === 'simple') {
           return { label: a.label, resultNarrate: a.resultNarrate };
         }
-        // check 型 → 引擎丢 D100
-        const target = skillTarget(a.check.skill);
+        // check 型 → 引擎用真角色技能值丢 D100
+        const target = skillTargetFromCharacter(char, a.check.skill);
         const result = rollCheck({ target, difficulty: a.check.difficulty }, rng);
-        const badge = `[${a.check.skill} ${result.roll}/${result.effectiveTarget} ${result.outcome}]`;
+        const skillName = char.skills.get(a.check.skill)?.name ?? a.check.skill;
+        const badge = `[${skillName} ${result.roll}/${result.effectiveTarget} ${result.outcome}]`;
         const narrate = result.succeeded ? a.successNarrate : a.failNarrate;
         return { label: a.label, resultNarrate: `${badge} ${narrate}` };
       });
