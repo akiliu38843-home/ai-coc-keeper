@@ -2,103 +2,193 @@
   "schemaVersion": 1,
   "id": "library_demo",
   "title": "失踪的馆长",
-  "author": "ai-coc-keeper demo",
-  "setting": "1928 年新英格兰小镇，一家废弃图书馆",
-  "authorNotes": "短 demo 剧本，3 个场景，用来验证 V0 引擎能跑通'场景 → 检定 → 叙事' 闭环。线索集中在接待台与楼上馆长办公室，关键 NPC 是已经死去的馆长 Pickman。",
+  "author": "ai-coc-keeper · 原创",
+  "setting": "1928 年新英格兰小镇，一座废弃图书馆的深夜调查",
+  "authorNotes": "原创克苏鲁风单人本，无任何 Chaosium IP 复用。馆长 P. Pickman 三天前深夜签到后未签出。线索分布：访客登记簿（接待台抽屉）→ 锁住的 203 钥匙（接待台暗格）→ 二楼办公室馆长尸体 + 笔记本螺旋符号 → 通向地下旧档案室（被掩门）→ 真相：馆长私下抄录禁忌典籍，触发了潜伏在书架阴影里的「书祭」。中段开始建议玩家心智度 plummet；结尾分支为逃出 / 烧毁档案室 / 永远变成新一任馆长。",
   "startSceneId": "scene_entrance",
   "scenes": [
     {
       "id": "scene_entrance",
       "name": "图书馆门厅",
-      "description": "推开沉重的橡木大门，一股潮湿的霉味扑面而来。月光从破碎的彩绘玻璃漏进来，照在堆满灰尘的接待台上。空气里有一种奇怪的甜腻味道。",
+      "description": "推开沉重的橡木大门，一股潮湿的霉味扑面而来。月光从破碎的彩绘玻璃漏进来，照在堆满灰尘的接待台上。空气里有一种奇怪的甜腻味道，像很久没人翻动的旧花束。",
       "hints": [
         "接待台抽屉里有一本访客登记簿，最后一条记录显示馆长 Pickman 三天前签到，但没签出",
-        "墙上挂着馆长的照片，眼睛部分被人粗暴地挖空",
-        "楼梯通向二楼办公室，似乎有动静"
+        "墙上挂着馆长的照片，眼睛部分被人粗暴地挖空，相框边缘有反复摩擦的痕迹",
+        "楼梯通向二楼办公室；楼下走廊深处也隐约通向地下入口（玩家暂未察觉）"
       ],
       "expectedChecks": [
         {
           "skill": "spot_hidden",
           "difficulty": "normal",
-          "reason": "观察接待台周围 —— 玩家应能看到登记簿、挖眼照片",
+          "reason": "观察接待台周围：登记簿、挖眼照片、楼下暗影",
           "onSuccess": {
             "setFlags": { "found_visitor_log": true },
-            "revealText": "你注意到接待台抽屉露出一角纸页 —— 一本陈旧的访客登记簿。"
+            "revealText": "接待台抽屉露出一角纸页 —— 访客登记簿。墙上挖空眼孔的边缘暗影里似乎有什么细碎刮痕。"
           }
         },
         {
           "skill": "listen",
           "difficulty": "normal",
-          "reason": "倾听二楼的动静",
+          "reason": "倾听二楼的动静，以及楼下深处可能的回声",
           "onSuccess": {
-            "setFlags": { "heard_upstairs": true },
-            "revealText": "你听到二楼有规律的、湿润的滴答声 —— 不像水。"
+            "setFlags": { "heard_two_directions": true },
+            "revealText": "二楼有规律的、湿润的滴答声；与此同时，正下方某处传来更轻、几乎像翻书页的窸窣。"
           }
         }
       ],
       "sanityTriggers": [
         {
-          "trigger": "玩家近距离看到馆长照片被挖空的眼睛",
+          "trigger": "近距离看到馆长照片被挖空的眼洞，黑得不像普通的剪洞",
           "lossOnSuccess": 0,
           "lossOnFailureRoll": "1d3",
-          "description": "那双挖空的黑洞似乎正在盯着你"
+          "description": "那两个空洞似乎在反向吸纳月光"
         }
       ],
       "exits": [
-        { "toScene": "scene_upstairs", "condition": "玩家选择上楼" },
-        { "toScene": "scene_reception", "condition": "玩家选择查看接待台" }
+        { "toScene": "scene_main_hall", "condition": "玩家进入主阅览大厅" },
+        { "toScene": "scene_reception", "condition": "玩家查看接待台" },
+        { "toScene": "scene_upstairs", "condition": "玩家上楼" }
       ]
     },
     {
       "id": "scene_reception",
       "name": "接待台与访客登记簿",
-      "description": "你绕到接待台后面。抽屉半开着，里面是一本封面已被霉斑啃出黑点的访客登记簿。台面下还有一抽屉，但被锁住了。",
+      "description": "你绕到接待台后面。抽屉半开着，里面是一本封面已被霉斑啃出黑点的访客登记簿。台面下还有一个抽屉，被锁住了。台面缝隙里似乎卡着什么薄物。",
       "hints": [
-        "访客登记簿最后一页：'P. Pickman, 11/19/1928, 11:42 PM' —— 三天前的深夜",
-        "被锁的抽屉里有一把铜钥匙，钥匙柄上刻着 '203' —— 二楼办公室"
+        "登记簿最后一页：'P. Pickman, 11/19/1928, 11:42 PM' —— 三天前的深夜",
+        "登记簿往前翻几页，能发现 Pickman 在过去三个月内每周深夜都来过，但只有一次签出",
+        "被锁的抽屉里有一把铜钥匙，柄上刻着 '203'（馆长办公室号）",
+        "台面缝隙里卡着一片烧焦的小纸条，似乎是从某本书撕下来的"
       ],
       "expectedChecks": [
         {
           "skill": "library_use",
           "difficulty": "normal",
-          "reason": "翻阅访客登记簿，找馆长签到记录",
+          "reason": "翻阅访客登记簿找馆长签到模式",
           "onSuccess": {
-            "setFlags": { "knows_pickman_late_night": true },
-            "revealText": "你翻到最后一条记录：馆长三天前深夜进入图书馆，但从未签出。"
+            "setFlags": { "knows_pickman_pattern": true },
+            "revealText": "馆长在过去三个月每周深夜来一次，签到却几乎从不签出 —— 像是从这地方走不出去。"
           }
         },
         {
           "skill": "locksmith",
           "difficulty": "hard",
-          "reason": "撬开被锁的抽屉",
+          "reason": "撬开被锁的台面下抽屉",
           "onSuccess": {
             "setFlags": { "found_203_key": true },
-            "revealText": "锁芯咔哒一声，抽屉滑开。你看到一把铜钥匙，柄上刻着 '203'。"
+            "revealText": "锁芯咔哒一声，抽屉滑开。里面只有一把铜钥匙，柄上刻着 '203'。"
           }
+        },
+        {
+          "skill": "spot_hidden",
+          "difficulty": "hard",
+          "reason": "发现台面缝隙的烧焦纸条",
+          "onSuccess": {
+            "setFlags": { "found_burnt_scrap": true },
+            "revealText": "你抠出一片烧焦的小纸，上面残留一行墨迹 —— '它们要的从来不是借书的人'。"
+          }
+        }
+      ],
+      "sanityTriggers": [
+        {
+          "trigger": "翻完登记簿意识到馆长几乎从不签出，像是被某种东西留住",
+          "lossOnSuccess": 0,
+          "lossOnFailureRoll": "1d3",
+          "description": "一连串名字旁边空荡荡的'签出'栏开始让你脊背发凉"
         }
       ],
       "exits": [
         { "toScene": "scene_entrance", "condition": "玩家回到门厅" },
-        { "toScene": "scene_upstairs", "condition": "玩家上楼" }
+        { "toScene": "scene_upstairs", "condition": "玩家上楼" },
+        { "toScene": "scene_main_hall", "condition": "玩家走向主阅览大厅" }
+      ]
+    },
+    {
+      "id": "scene_main_hall",
+      "name": "主阅览大厅",
+      "description": "主阅览大厅高得离谱，书架从地板直顶天花板，月光只能勉强爬到一半的高度。中央那张长读书桌上摊着几本被随手放下的书，仿佛读者刚才还在这里。空气里那股甜腻的气味比门厅更浓。",
+      "hints": [
+        "桌上摊开的书是一本厚重的旧书，最后一页有用力按压过的痕迹，像是有人匆忙合上",
+        "深处一排书架后藏着一扇半掩的暗门，通向地下旧档案室",
+        "高处某本书的位置缺了一本，留下的空隙像一只竖起的眼缝",
+        "桌椅之间的木地板有几道近期才被反复踩出的拖痕，朝向暗门方向"
+      ],
+      "expectedChecks": [
+        {
+          "skill": "library_use",
+          "difficulty": "normal",
+          "reason": "辨识桌上摊开的那本书是什么主题",
+          "onSuccess": {
+            "setFlags": { "knows_topic_is_arcane": true },
+            "revealText": "这是一本写于 19 世纪末的私人手稿合集，内容关于'书祭'—— 一种用文字喂养某种存在的古老仪式。"
+          }
+        },
+        {
+          "skill": "spot_hidden",
+          "difficulty": "hard",
+          "reason": "看出书架深处的暗门 + 地板上的拖痕",
+          "onSuccess": {
+            "setFlags": { "found_basement_door": true },
+            "revealText": "你顺着拖痕看过去，发现深处那排书架后掩着一扇暗门 —— 通向地下。"
+          }
+        },
+        {
+          "skill": "psychology",
+          "difficulty": "normal",
+          "reason": "感受这个空间的'氛围'",
+          "onSuccess": {
+            "setFlags": { "felt_observed": true },
+            "revealText": "高处那只空荡的书缝让你产生一种被反向观察的感觉 —— 不像有人在看你，更像有什么正在透过书架间的空隙记住你。"
+          }
+        }
+      ],
+      "sanityTriggers": [
+        {
+          "trigger": "意识到高处书缝像一只反向凝视的眼睛",
+          "lossOnSuccess": 0,
+          "lossOnFailureRoll": "1d3",
+          "description": "那道空缝在你视线偏移的瞬间微微闭合了一下"
+        },
+        {
+          "trigger": "读懂桌上那本'书祭'手稿提到'文字会被喂养，然后反过来吃读者'",
+          "lossOnSuccess": 0,
+          "lossOnFailureRoll": "1d4",
+          "description": "你忽然意识到自己已经在脑中默念过这段了"
+        }
+      ],
+      "exits": [
+        { "toScene": "scene_entrance", "condition": "玩家退回门厅" },
+        { "toScene": "scene_upstairs", "condition": "玩家上楼调查馆长办公室" },
+        { "toScene": "scene_basement", "condition": "玩家穿过暗门下到地下档案室（需要先发现暗门）" }
       ]
     },
     {
       "id": "scene_upstairs",
       "name": "二楼走廊与 203 办公室",
-      "description": "二楼走廊狭长，木地板每走一步都发出抗议般的呻吟。走廊尽头是 203 室 —— 馆长 Pickman 的办公室。门虚掩着，里面隐隐传出那种甜腻气味。",
+      "description": "二楼走廊狭长，木地板每走一步都发出抗议般的呻吟。走廊尽头是 203 室 —— 馆长 Pickman 的办公室。门虚掩着，里面隐隐传出那种甜腻气味，比楼下重了好几倍。",
       "hints": [
         "门虚掩，能直接推开",
-        "办公桌上有一本笔记本，最后一页写着不属于人类语言的符号",
-        "馆长本人趴在桌上，已经死去多日 —— 眼睛被以同样方式挖空"
+        "办公桌上有一本笔记本，最后一页写着不属于人类语言的螺旋符号",
+        "馆长本人趴在桌上，已经死去多日 —— 眼睛被以同样方式挖空，但脸上没有挣扎表情",
+        "桌底有一个被铜钥匙锁住的木盒（需要 203 钥匙才能打开）"
       ],
       "expectedChecks": [
         {
           "skill": "spot_hidden",
           "difficulty": "hard",
-          "reason": "观察办公室内的异常细节（符号 / 馆长姿态）",
+          "reason": "观察办公室内的异常细节（符号 / 馆长姿态 / 桌底木盒）",
           "onSuccess": {
-            "setFlags": { "saw_corpse_and_symbols": true },
-            "revealText": "你的胃部一阵抽搐 —— 馆长 Pickman 趴在桌上，眼睛被挖空。桌面笔记本最后一页是某种螺旋状的符号，看一眼便觉头晕。"
+            "setFlags": { "saw_corpse_and_symbols": true, "found_locked_box": true },
+            "revealText": "你的胃部一阵抽搐 —— 馆长趴在桌上，眼睛被挖空，脸上却没有挣扎过的痕迹。桌面笔记本最后一页是某种螺旋状的符号，看一眼便觉头晕。桌底有一个木盒，挂着一把小铜锁。"
+          }
+        },
+        {
+          "skill": "occult",
+          "difficulty": "hard",
+          "reason": "辨识笔记本上的螺旋符号",
+          "onSuccess": {
+            "setFlags": { "decoded_symbols": true },
+            "revealText": "这些符号不是任何已知人类语言。但你能感觉到它们的'排列法则'—— 像在记录某种喂养的次数。"
           }
         }
       ],
@@ -117,16 +207,111 @@
         }
       ],
       "exits": [
-        { "toScene": "scene_entrance", "condition": "玩家逃下楼" }
+        { "toScene": "scene_entrance", "condition": "玩家逃下楼" },
+        { "toScene": "scene_main_hall", "condition": "玩家走向主阅览大厅" },
+        { "toScene": "scene_basement", "condition": "玩家直接冲向地下（需要先知道地下入口）" }
       ]
+    },
+    {
+      "id": "scene_basement",
+      "name": "地下旧档案室",
+      "description": "你穿过暗门，台阶通向一间空气滞重的地下档案室。墙壁上是一排排手抄的旧账册和私人通信，但每一本的'封面'都是用同样的螺旋符号写成的标题。房间中央有一个被挖出来的浅坑，坑底躺着一具不完整的人形 —— 显然不是新近的尸体，骨头上还残留着指尖按压的痕迹。",
+      "hints": [
+        "墙上每一本旧账册都是用螺旋符号标题，似乎在'记录每一次喂养'",
+        "中央浅坑里的人形已经不完整，但姿态不像被啃食 —— 更像被'吸收'",
+        "你脚下的地板缝隙里渗出一些粘稠的液体，颜色与那股甜腻气味相符",
+        "深处有一个旧木柜，柜里整齐排着 27 本相同装帧的小册子，每一本的'编号'都是某位失踪的访客的名字"
+      ],
+      "expectedChecks": [
+        {
+          "skill": "library_use",
+          "difficulty": "hard",
+          "reason": "查阅木柜里那 27 本'访客小册'，理解他们的命运",
+          "onSuccess": {
+            "setFlags": { "knows_27_victims": true },
+            "revealText": "每一本都按时间顺序记录了一位访客来图书馆的时间 / 借阅记录 / 最后停笔的位置。他们不是失踪了 —— 是被'吃进'书架里。"
+          }
+        },
+        {
+          "skill": "occult",
+          "difficulty": "normal",
+          "reason": "理解地下档案室的'书祭'机制",
+          "onSuccess": {
+            "setFlags": { "understood_book_feast": true },
+            "revealText": "这不是一个图书馆 —— 是一个胃。每一位读者既是来'读'的，也是来被'读'的。Pickman 馆长可能是最后一位还能主动决定何时来的人。"
+          }
+        }
+      ],
+      "sanityTriggers": [
+        {
+          "trigger": "看清中央浅坑里那具被'吸收'的人形",
+          "lossOnSuccess": 1,
+          "lossOnFailureRoll": "1d6",
+          "description": "那不是被吃掉的，是被'读'到只剩骨头的"
+        },
+        {
+          "trigger": "理解到自己也是这 28 本访客名册里的下一本",
+          "lossOnSuccess": 1,
+          "lossOnFailureRoll": "1d8",
+          "description": "你忽然清醒地意识到，这种意识本身可能就是新一卷的第一页"
+        }
+      ],
+      "exits": [
+        { "toScene": "scene_ending", "condition": "玩家做出最终选择（逃 / 烧 / 留下）" }
+      ]
+    },
+    {
+      "id": "scene_ending",
+      "name": "三种结局",
+      "description": "你站在地下档案室的入口，手里握着选择。门厅那边传来木板发出的低沉吱呀，像有人正缓缓走下楼梯 —— 但你知道这栋楼里除了你和那些被'读'掉的人，没有别人。\n\n你脑中只剩三条路：把这地方烧掉、夺路逃出去、或者……写下你自己的名字成为新一任馆长。",
+      "hints": [
+        "结局 A：烧档案室 → 用桌上那本'书祭'手稿点燃地下室；这能摧毁喂养循环但你可能也烧死自己",
+        "结局 B：逃出图书馆 → 你不会死，但每个夜里都会做同一个梦：你站在浅坑边，听见有人念你的名字",
+        "结局 C：留下成为新馆长 → 你拿起钢笔在 27 本之后写下自己的名字。第二天清晨，图书馆里多了一位看起来年轻得不像样的新管理员"
+      ],
+      "expectedChecks": [
+        {
+          "skill": "intimidate",
+          "difficulty": "normal",
+          "reason": "玩家鼓起勇气选择烧档案室（需要强意志压过本能逃跑）",
+          "onSuccess": {
+            "setFlags": { "chose_burn": true },
+            "revealText": "你用颤抖的手把'书祭'手稿撕下一页，凑近油灯。火苗舔上墨字的一瞬，整间档案室开始发出某种近似'呼吸'的低响。"
+          }
+        },
+        {
+          "skill": "dodge",
+          "difficulty": "normal",
+          "reason": "玩家选择夺路逃出（需要避开走廊里那个'还没下完楼'的影子）",
+          "onSuccess": {
+            "setFlags": { "chose_flee": true },
+            "revealText": "你贴着墙摸过那道空荡的楼梯口，没敢回头看那个一直没真正走完的身影。冷夜的空气劈面而来，你不知道自己跑了多久。"
+          }
+        }
+      ],
+      "sanityTriggers": [
+        {
+          "trigger": "意识到自己可能已经在第 28 本里写下了名字（不论选哪条结局，这种怀疑都会一直跟着你）",
+          "lossOnSuccess": 1,
+          "lossOnFailureRoll": "1d8",
+          "description": "你回想起进图书馆时签的那次到，签出栏现在到底有没有填完？"
+        }
+      ],
+      "exits": []
     }
   ],
   "npcs": [
     {
       "id": "pickman_corpse",
       "name": "P. Pickman 馆长",
-      "persona": "图书馆馆长，1872 年生，独居，沉迷古籍。三天前死亡，眼睛被挖空，尸体已开始腐烂。无法对话 —— 已死。仅在玩家发现尸体时出现作为'被观察对象'。",
+      "persona": "图书馆馆长，1872 年生，独居，三个月前开始沉迷于一批私人手抄古籍。已死，被挖空双眼，无法对话。仅在 203 办公室作为'被观察对象'出现。他脸上没有挣扎痕迹 —— 暗示他最后是自愿坐下来被'读'掉的。",
       "initialAttitude": 0
+    },
+    {
+      "id": "stairwell_shadow",
+      "name": "楼梯口的影子",
+      "persona": "贯穿整本剧本的'背景威胁'。从开场就在楼梯上隐约有动静，但永远没真正走完楼梯。它不是 Pickman，也不是任何过去的访客 —— 它是那 28 本'访客名册'共同的低语在物理世界的投影。它不主动攻击，但只要玩家在图书馆里停留得够久，它就会越来越具体。无法对话。",
+      "initialAttitude": -30
     }
   ]
 }
