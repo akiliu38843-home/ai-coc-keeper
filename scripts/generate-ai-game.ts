@@ -140,9 +140,47 @@ async function main(): Promise<void> {
   }
   // 跨 scene 状态追踪: rng 提到外层, 循环里复用同一份 char (currentSanity 会被 mutate)
   const rng: Rng = new DefaultRng();
+  // COC 7e 规则: "单日累计损失 ≥ 1/5 maxSanity" → 长期心智失常
+  // V0 简化: 整本剧本作为"一日", 累计 >= maxSanity/5 触发 (且只触发一次)
+  let sanityLossAccum = 0;
+  const indefThreshold = Math.floor(char.maxSanity / 5);
+  let indefTriggered = char.conditions.some((c) => c.type === 'indef_insanity');
   const perSceneActions = new Map<string, LlmAction[]>();
   const perSceneTransitions = new Map<string, Map<number, LlmAction[]>>();
   const perSceneInScene = new Map<string, InSceneAction[]>();
+
+  /** 统一处理 sanity 损失: 累计 / 临时 / 长期触发. 返回 badge 字符串. */
+  function applySanity(actualLoss: number, reason: string): string {
+    if (actualLoss <= 0) return '';
+    char.currentSanity = Math.max(0, char.currentSanity - actualLoss);
+    sanityLossAccum += actualLoss;
+    let badge = `[心智 -${actualLoss} → ${char.currentSanity}/${char.maxSanity}]`;
+    // 单次 >= 5 → 临时心智失常
+    if (actualLoss >= 5 && !char.conditions.some((c) => c.type === 'temp_insanity')) {
+      char.conditions.push({ type: 'temp_insanity', source: reason, appliedAt: Date.now() });
+      badge += ' [临时心智失常]';
+    }
+    // 累计 >= maxSanity/5 → 长期心智失常 (只触发一次, 从 100 项表 roll)
+    if (!indefTriggered && sanityLossAccum >= indefThreshold) {
+      indefTriggered = true;
+      const insanity = rollInsanity(rng);
+      const tag = insanity.kind === 'phobia' ? '恐惧症' : '狂躁症';
+      badge += ` [长期失常: ${tag}《${insanity.entry.nameZh}》— ${insanity.entry.description}]`;
+      char.conditions.push({
+        type: 'indef_insanity',
+        source: reason,
+        appliedAt: Date.now(),
+        insanityDetail: {
+          kind: insanity.kind,
+          id: insanity.entry.id,
+          nameZh: insanity.entry.nameZh,
+          nameEn: insanity.entry.nameEn,
+          description: insanity.entry.description,
+        },
+      });
+    }
+    return badge;
+  }
 
   // 每个 scene: 1) enterScene 拿主叙事 2) 每个 exit 跑 narrateTransition
   for (let i = 0; i < scenario.scenes.length; i++) {
@@ -167,8 +205,25 @@ async function main(): Promise<void> {
         character: char,
         narrative: ns,
       });
-      perSceneActions.set(scene.id, [action]);
-      console.log(`    ✓ enterScene · ${action.type} (${(action.text ?? '').slice(0, 40)}...)`);
+      // 1b) 处理 scene.sanityTriggers（作者埋的"进场就触发"恐怖点）
+      const triggerBadges: string[] = [];
+      for (const trigger of (scene.sanityTriggers ?? [])) {
+        const sanResult = rollSanityCheck({
+          currentSanity: char.currentSanity,
+          lossOnSuccess: trigger.lossOnSuccess,
+          lossOnFailureRoll: trigger.lossOnFailureRoll,
+          reason: trigger.trigger,
+        }, rng);
+        const badge = applySanity(sanResult.actualLoss, trigger.trigger);
+        if (badge) triggerBadges.push(badge);
+      }
+      // 把 trigger badges 拼到主 narrate 后
+      let narrateWithBadges = action;
+      if (triggerBadges.length > 0 && (action.type === 'narrate' || action.type === 'dialogue')) {
+        narrateWithBadges = { ...action, text: `${action.text} ${triggerBadges.join(' ')}` };
+      }
+      perSceneActions.set(scene.id, [narrateWithBadges]);
+      console.log(`    ✓ enterScene · ${action.type} (${(action.text ?? '').slice(0, 40)}...)${triggerBadges.length > 0 ? ` + ${triggerBadges.length} sanity 触发` : ''}`);
     } catch (e) {
       console.warn(`    ⚠ enterScene 失败, 回退原描述: ${(e as Error).message.slice(0, 80)}`);
     }
@@ -208,28 +263,8 @@ async function main(): Promise<void> {
             lossOnFailureRoll: a.sanityCost.onFailure,
             reason: a.label,
           }, rng);
-          if (sanResult.actualLoss > 0) {
-            char.currentSanity = sanResult.remainingSanity;
-            sanityBadge = ` [心智 -${sanResult.actualLoss} → ${char.currentSanity}/${char.maxSanity}]`;
-          }
-          // 检查长期心智失常 (≥ maxSanity/5)
-          if (sanResult.actualLoss >= Math.floor(char.maxSanity / 5)) {
-            const insanity = rollInsanity(rng);
-            const tag = insanity.kind === 'phobia' ? '恐惧症' : '狂躁症';
-            sanityBadge += ` [长期失常: ${tag}《${insanity.entry.nameZh}》— ${insanity.entry.description}]`;
-            char.conditions.push({
-              type: 'indef_insanity',
-              source: a.label,
-              appliedAt: Date.now(),
-              insanityDetail: {
-                kind: insanity.kind,
-                id: insanity.entry.id,
-                nameZh: insanity.entry.nameZh,
-                nameEn: insanity.entry.nameEn,
-                description: insanity.entry.description,
-              },
-            });
-          }
+          const badge = applySanity(sanResult.actualLoss, a.label);
+          if (badge) sanityBadge = ' ' + badge;
         }
 
         const fullBadge = skillBadge + sanityBadge;
