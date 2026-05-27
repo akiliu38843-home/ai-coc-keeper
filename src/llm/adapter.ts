@@ -20,20 +20,32 @@ import {
 import type { Difficulty as DifficultyTy } from '../types/rules.js';
 
 export type SuggestedAction =
-  | { kind: 'simple'; label: string; resultNarrate: string }
+  | { kind: 'simple'; label: string; resultNarrate: string; sanityCost?: SanityCostSpec }
   | {
       kind: 'check';
       label: string;
       check: { skill: string; difficulty: DifficultyTy };
       successNarrate: string;
       failNarrate: string;
+      sanityCost?: SanityCostSpec;
     };
+
+/** 心智耗损规格 "X/YdZ" 风格 (COC 7e) */
+export interface SanityCostSpec {
+  /** 通过 SAN check 时损失（固定数字）*/
+  onSuccess: number;
+  /** 失败时损失（"1d4" / "1d6" 等记法，或固定数字）*/
+  onFailure: string | number;
+}
 
 function parseSuggestedAction(raw: unknown): SuggestedAction[] {
   if (typeof raw !== 'object' || raw === null) return [];
   const o = raw as Record<string, unknown>;
   if (typeof o['label'] !== 'string') return [];
   const label = o['label'] as string;
+
+  // 解析可选 sanityCost
+  const sanityCost = parseSanityCost(o['sanityCost']);
 
   // 含 check 字段 → check 型
   const check = o['check'];
@@ -45,7 +57,7 @@ function parseSuggestedAction(raw: unknown): SuggestedAction[] {
     typeof o['successNarrate'] === 'string' &&
     typeof o['failNarrate'] === 'string'
   ) {
-    return [{
+    const action: SuggestedAction = {
       kind: 'check',
       label,
       check: {
@@ -54,14 +66,27 @@ function parseSuggestedAction(raw: unknown): SuggestedAction[] {
       },
       successNarrate: o['successNarrate'] as string,
       failNarrate: o['failNarrate'] as string,
-    }];
+    };
+    if (sanityCost) action.sanityCost = sanityCost;
+    return [action];
   }
 
   // 普通行动
   if (typeof o['resultNarrate'] === 'string') {
-    return [{ kind: 'simple', label, resultNarrate: o['resultNarrate'] as string }];
+    const action: SuggestedAction = { kind: 'simple', label, resultNarrate: o['resultNarrate'] as string };
+    if (sanityCost) action.sanityCost = sanityCost;
+    return [action];
   }
   return [];
+}
+
+function parseSanityCost(raw: unknown): SanityCostSpec | null {
+  if (typeof raw !== 'object' || raw === null) return null;
+  const o = raw as Record<string, unknown>;
+  if (typeof o['onSuccess'] !== 'number') return null;
+  const onFail = o['onFailure'];
+  if (typeof onFail !== 'string' && typeof onFail !== 'number') return null;
+  return { onSuccess: o['onSuccess'] as number, onFailure: onFail };
 }
 
 // ─── LlmAction 类型 ──────────────────────────────────
@@ -242,13 +267,19 @@ export class LlmAdapter {
 4. 如果是不需要技能的纯观察 / 闻气味 / 摸表面 —— 不加 check, 只用 resultNarrate
 5. **永远不要在 narrate 里写"投出 X" / "你成功了" / "你失败了"** —— 引擎会丢骰子, 你只写叙事的 atmosphere
 6. 4 个行动里建议有 1-2 个带 check, 让玩家感到"决策有重量"
+7. **如果行动会接触恐怖元素**（看尸体 / 看挖空眼洞 / 触摸不该存在的纹路 / 听到不属于人类的声音 / 读禁书残页 / 闻腐肉味）—— 加 sanityCost 字段:
+   - onSuccess: 通过 SAN check 时损失（数字，COC 惯例 0 或 1）
+   - onFailure: 失败时损失（"1d2" / "1d4" / "1d6" 等记法）
+   - 强度参考: 不寻常的细节 0/1d2 / 怪异污渍 0/1d3 / 尸体 0/1d4 / 怪物 1/1d6+ / Cthulhu 级 1d10/1d100
+8. **不要每个行动都加 sanityCost** —— 4 个里 0-2 个有就够, 让恐怖有节制
 
 【输出 JSON schema】 (严格 JSON, 不带 markdown wrapper)
 {
   "actions": [
-    { "label": "看照片", "resultNarrate": "那两个被挖空的眼洞..." },
+    { "label": "看照片", "resultNarrate": "那两个被挖空的眼洞...",
+      "sanityCost": { "onSuccess": 0, "onFailure": "1d2" } },
     { "label": "撬抽屉", "check": { "skill": "locksmith", "difficulty": "hard" },
-      "successNarrate": "锁芯咔哒一声打开, 里面...", "failNarrate": "撬棒滑脱..." },
+      "successNarrate": "锁芯咔哒一声...", "failNarrate": "撬棒滑脱..." },
     ...
   ]
 }`;

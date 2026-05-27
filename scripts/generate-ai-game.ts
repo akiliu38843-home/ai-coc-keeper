@@ -16,11 +16,13 @@ import { buildSceneContext } from '../src/llm/prompts.js';
 import { loadCharacter, listCharacters } from '../src/character/save-load.js';
 import { skillTotal } from '../src/types/character.js';
 import { OpenAICompatibleProvider } from '../src/llm/openai-compatible.js';
-import { LlmAdapter, type LlmAction } from '../src/llm/adapter.js';
+import { LlmAdapter, type LlmAction, type SuggestedAction } from '../src/llm/adapter.js';
 import { InMemoryNarrativeState } from '../src/engine/in-memory-narrative-state.js';
 import { recomputeDerivedStats } from '../src/types/character.js';
 import { rollCheck } from '../src/engine/skill-check.js';
-import { DefaultRng } from '../src/engine/rng.js';
+import { rollSanityCheck } from '../src/engine/sanity.js';
+import { rollInsanity } from '../src/engine/insanity-tables.js';
+import { DefaultRng, type Rng } from '../src/engine/rng.js';
 import type { Character } from '../src/types/character.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -136,6 +138,8 @@ async function main(): Promise<void> {
       char = makeChar();
     }
   }
+  // 跨 scene 状态追踪: rng 提到外层, 循环里复用同一份 char (currentSanity 会被 mutate)
+  const rng: Rng = new DefaultRng();
   const perSceneActions = new Map<string, LlmAction[]>();
   const perSceneTransitions = new Map<string, Map<number, LlmAction[]>>();
   const perSceneInScene = new Map<string, InSceneAction[]>();
@@ -178,19 +182,61 @@ async function main(): Promise<void> {
         narrative: ns,
       });
       const suggested = await adapter.suggestActions({ sceneContext, count: 4 });
-      // 把 SuggestedAction 转成 InSceneAction (含 check 的丢骰)
-      const rng = new DefaultRng();
-      const resolved: InSceneAction[] = suggested.map((a) => {
-        if (a.kind === 'simple') {
-          return { label: a.label, resultNarrate: a.resultNarrate };
+      // 把 SuggestedAction 转成 InSceneAction (含 check 的丢骰, sanityCost 处理)
+      const resolved: InSceneAction[] = suggested.map((a: SuggestedAction) => {
+        // 1) 先处理 check 型 vs simple 型, 拿到 baseNarrate
+        let baseNarrate: string;
+        let skillBadge = '';
+        let checkSucceeded = true; // simple 型默认"过"
+        if (a.kind === 'check') {
+          const target = skillTargetFromCharacter(char, a.check.skill);
+          const result = rollCheck({ target, difficulty: a.check.difficulty }, rng);
+          checkSucceeded = result.succeeded;
+          const skillName = char.skills.get(a.check.skill)?.name ?? a.check.skill;
+          skillBadge = `[${skillName} ${result.roll}/${result.effectiveTarget} ${result.outcome}]`;
+          baseNarrate = result.succeeded ? a.successNarrate : a.failNarrate;
+        } else {
+          baseNarrate = a.resultNarrate;
         }
-        // check 型 → 引擎用真角色技能值丢 D100
-        const target = skillTargetFromCharacter(char, a.check.skill);
-        const result = rollCheck({ target, difficulty: a.check.difficulty }, rng);
-        const skillName = char.skills.get(a.check.skill)?.name ?? a.check.skill;
-        const badge = `[${skillName} ${result.roll}/${result.effectiveTarget} ${result.outcome}]`;
-        const narrate = result.succeeded ? a.successNarrate : a.failNarrate;
-        return { label: a.label, resultNarrate: `${badge} ${narrate}` };
+
+        // 2) 处理可选的 sanityCost (跨 scene 状态追踪 E 阶段)
+        let sanityBadge = '';
+        if (a.sanityCost) {
+          const sanResult = rollSanityCheck({
+            currentSanity: char.currentSanity,
+            lossOnSuccess: a.sanityCost.onSuccess,
+            lossOnFailureRoll: a.sanityCost.onFailure,
+            reason: a.label,
+          }, rng);
+          if (sanResult.actualLoss > 0) {
+            char.currentSanity = sanResult.remainingSanity;
+            sanityBadge = ` [心智 -${sanResult.actualLoss} → ${char.currentSanity}/${char.maxSanity}]`;
+          }
+          // 检查长期心智失常 (≥ maxSanity/5)
+          if (sanResult.actualLoss >= Math.floor(char.maxSanity / 5)) {
+            const insanity = rollInsanity(rng);
+            const tag = insanity.kind === 'phobia' ? '恐惧症' : '狂躁症';
+            sanityBadge += ` [长期失常: ${tag}《${insanity.entry.nameZh}》— ${insanity.entry.description}]`;
+            char.conditions.push({
+              type: 'indef_insanity',
+              source: a.label,
+              appliedAt: Date.now(),
+              insanityDetail: {
+                kind: insanity.kind,
+                id: insanity.entry.id,
+                nameZh: insanity.entry.nameZh,
+                nameEn: insanity.entry.nameEn,
+                description: insanity.entry.description,
+              },
+            });
+          }
+        }
+
+        const fullBadge = skillBadge + sanityBadge;
+        const prefix = fullBadge.trim() ? `${fullBadge.trim()} ` : '';
+        // 防双空格 + 用 checkSucceeded 抑制 lint 警告
+        void checkSucceeded;
+        return { label: a.label, resultNarrate: `${prefix}${baseNarrate}` };
       });
       if (resolved.length > 0) {
         perSceneInScene.set(scene.id, resolved);
