@@ -45,6 +45,14 @@ export interface ScenarioOutline {
 
 const OUTLINE_SYSTEM_PROMPT = `你是 COC 剧本结构分析器。任务：把一份原文本剧本"骨架化"成 ScenarioOutline JSON。
 
+【新增字段 mood】每个 scene 都要给一个 mood:
+  - "calm"    开场 / 平和 / 抵达探索初期
+  - "mystery" 谜团 / 调查 / 线索收集
+  - "tension" 紧张 / 监视 / 即将出事 / 夜间
+  - "horror"  直面恐怖 / 看到尸体 / 心智冲击
+  - "climax"  高潮 / 仪式 / 战斗
+  - "ending"  结局 / 余韵
+
 只输出 outline —— 不要写场景细节、不要写检定、不要写心智耗损触发。这些后续会另跑 detail pass。
 
 【输出 JSON schema】
@@ -60,7 +68,8 @@ const OUTLINE_SYSTEM_PROMPT = `你是 COC 剧本结构分析器。任务：把�
       "name": "场景名",
       "shortDescription": "1-2 句话描述这个场景发生什么",
       "pageRange": { "from": 3, "to": 5 },
-      "kind": "intro" | "exploration" | "encounter" | "climax" | "ending"
+      "kind": "intro" | "exploration" | "encounter" | "climax" | "ending",
+      "mood": "calm" | "mystery" | "tension" | "horror" | "climax" | "ending"
     }
     ...
   ],

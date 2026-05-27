@@ -83,7 +83,18 @@ export interface Scene {
   /** 此场景的 BGM / 背景图（资源 ID） */
   bgm?: string;
   background?: string;
+  /** 场景氛围 —— 给 builder 选默认 BGM 用 */
+  mood?: SceneMood;
 }
+
+/** 场景氛围分类，决定默认 BGM */
+export type SceneMood =
+  | 'calm'        // 开场 / 平和 / 探索初期
+  | 'mystery'     // 谜团 / 调查 / 线索
+  | 'tension'     // 紧张 / 监视 / 即将出事
+  | 'horror'      // 直面恐怖 / 心智冲击
+  | 'climax'      // 高潮 / 战斗 / 仪式
+  | 'ending';     // 结局 / 余韵
 
 // ─── 整本剧本 ───────────────────────────────────────
 

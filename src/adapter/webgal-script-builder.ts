@@ -23,9 +23,26 @@
 //   - Scene.exits             → 转 choose: 命令
 
 import type { LlmAction } from '../llm/adapter.js';
-import type { Scene, Scenario } from '../types/scenario.js';
+import type { Scene, Scenario, SceneMood } from '../types/scenario.js';
 import type { Character } from '../types/character.js';
 import { skillTotal } from '../types/character.js';
+
+/**
+ * 按 mood 选择默认 BGM 文件名。
+ * V0 文件不一定都存在，玩家可往 external/WebGAL/.../public/game/bgm/ 自己加。
+ * 默认 fallback 是 WebGAL 自带的 s_Title.mp3（一定存在）。
+ */
+export function defaultBgmForMood(mood: SceneMood | undefined): string {
+  switch (mood) {
+    case 'calm':    return 'mood_calm.mp3';
+    case 'mystery': return 'mood_mystery.mp3';
+    case 'tension': return 'mood_tension.mp3';
+    case 'horror':  return 'mood_horror.mp3';
+    case 'climax':  return 'mood_climax.mp3';
+    case 'ending':  return 'mood_ending.mp3';
+    default:        return 's_Title.mp3';
+  }
+}
 
 // ─── 字符串转义（WebGAL 不爱 ; 和 : ) ─────────────────
 
@@ -134,8 +151,11 @@ export function sceneToWebgalSection(
   if (opts.background ?? scene.background) {
     lines.push(`changeBg:${opts.background ?? scene.background} -next;`);
   }
-  if (opts.bgm ?? scene.bgm) {
-    lines.push(`bgm:${opts.bgm ?? scene.bgm};`);
+  // BGM 优先级: opts.bgm > scene.bgm > scene.mood 派生
+  const bgmFile = opts.bgm ?? scene.bgm ?? (scene.mood ? defaultBgmForMood(scene.mood) : undefined);
+  if (bgmFile) {
+    // -volume=60 让叙事文字比 BGM 突出, -enter=2000 渐入
+    lines.push(`bgm:${bgmFile} -volume=60 -enter=2000;`);
   }
 
   // 场景主叙事

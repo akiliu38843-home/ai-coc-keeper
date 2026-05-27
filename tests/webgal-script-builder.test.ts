@@ -154,7 +154,28 @@ describe('sceneToWebgalSection', () => {
     };
     const out = sceneToWebgalSection(scene);
     expect(out).toContain('changeBg:lib.webp -next;');
-    expect(out).toContain('bgm:horror.mp3;');
+    // bgm 现在带 -volume/-enter 参数, 检查关键部分
+    expect(out).toMatch(/bgm:horror\.mp3 -volume=\d+ -enter=\d+;/);
+  });
+
+  it('scene 含 mood (无 bgm) 时, builder 派生默认 BGM 文件名', () => {
+    const scene: Scene = {
+      id: 'scene_a', name: 'N', description: 'D',
+      mood: 'horror',
+    };
+    const out = sceneToWebgalSection(scene);
+    expect(out).toMatch(/bgm:mood_horror\.mp3 -volume=\d+ -enter=\d+;/);
+  });
+
+  it('scene.bgm 优先级高于 mood', () => {
+    const scene: Scene = {
+      id: 'scene_a', name: 'N', description: 'D',
+      mood: 'horror',
+      bgm: 'custom.mp3',
+    };
+    const out = sceneToWebgalSection(scene);
+    expect(out).toContain('bgm:custom.mp3');
+    expect(out).not.toContain('mood_horror');
   });
 });
 

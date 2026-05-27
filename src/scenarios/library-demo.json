@@ -22,7 +22,9 @@
           "difficulty": "normal",
           "reason": "观察接待台周围：登记簿、挖眼照片、楼下暗影",
           "onSuccess": {
-            "setFlags": { "found_visitor_log": true },
+            "setFlags": {
+              "found_visitor_log": true
+            },
             "revealText": "接待台抽屉露出一角纸页 —— 访客登记簿。墙上挖空眼孔的边缘暗影里似乎有什么细碎刮痕。"
           }
         },
@@ -31,7 +33,9 @@
           "difficulty": "normal",
           "reason": "倾听二楼的动静，以及楼下深处可能的回声",
           "onSuccess": {
-            "setFlags": { "heard_two_directions": true },
+            "setFlags": {
+              "heard_two_directions": true
+            },
             "revealText": "二楼有规律的、湿润的滴答声；与此同时，正下方某处传来更轻、几乎像翻书页的窸窣。"
           }
         }
@@ -45,10 +49,20 @@
         }
       ],
       "exits": [
-        { "toScene": "scene_main_hall", "condition": "玩家进入主阅览大厅" },
-        { "toScene": "scene_reception", "condition": "玩家查看接待台" },
-        { "toScene": "scene_upstairs", "condition": "玩家上楼" }
-      ]
+        {
+          "toScene": "scene_main_hall",
+          "condition": "玩家进入主阅览大厅"
+        },
+        {
+          "toScene": "scene_reception",
+          "condition": "玩家查看接待台"
+        },
+        {
+          "toScene": "scene_upstairs",
+          "condition": "玩家上楼"
+        }
+      ],
+      "mood": "calm"
     },
     {
       "id": "scene_reception",
@@ -66,7 +80,9 @@
           "difficulty": "normal",
           "reason": "翻阅访客登记簿找馆长签到模式",
           "onSuccess": {
-            "setFlags": { "knows_pickman_pattern": true },
+            "setFlags": {
+              "knows_pickman_pattern": true
+            },
             "revealText": "馆长在过去三个月每周深夜来一次，签到却几乎从不签出 —— 像是从这地方走不出去。"
           }
         },
@@ -75,7 +91,9 @@
           "difficulty": "hard",
           "reason": "撬开被锁的台面下抽屉",
           "onSuccess": {
-            "setFlags": { "found_203_key": true },
+            "setFlags": {
+              "found_203_key": true
+            },
             "revealText": "锁芯咔哒一声，抽屉滑开。里面只有一把铜钥匙，柄上刻着 '203'。"
           }
         },
@@ -84,7 +102,9 @@
           "difficulty": "hard",
           "reason": "发现台面缝隙的烧焦纸条",
           "onSuccess": {
-            "setFlags": { "found_burnt_scrap": true },
+            "setFlags": {
+              "found_burnt_scrap": true
+            },
             "revealText": "你抠出一片烧焦的小纸，上面残留一行墨迹 —— '它们要的从来不是借书的人'。"
           }
         }
@@ -98,10 +118,20 @@
         }
       ],
       "exits": [
-        { "toScene": "scene_entrance", "condition": "玩家回到门厅" },
-        { "toScene": "scene_upstairs", "condition": "玩家上楼" },
-        { "toScene": "scene_main_hall", "condition": "玩家走向主阅览大厅" }
-      ]
+        {
+          "toScene": "scene_entrance",
+          "condition": "玩家回到门厅"
+        },
+        {
+          "toScene": "scene_upstairs",
+          "condition": "玩家上楼"
+        },
+        {
+          "toScene": "scene_main_hall",
+          "condition": "玩家走向主阅览大厅"
+        }
+      ],
+      "mood": "mystery"
     },
     {
       "id": "scene_main_hall",
@@ -119,7 +149,9 @@
           "difficulty": "normal",
           "reason": "辨识桌上摊开的那本书是什么主题",
           "onSuccess": {
-            "setFlags": { "knows_topic_is_arcane": true },
+            "setFlags": {
+              "knows_topic_is_arcane": true
+            },
             "revealText": "这是一本写于 19 世纪末的私人手稿合集，内容关于'书祭'—— 一种用文字喂养某种存在的古老仪式。"
           }
         },
@@ -128,7 +160,9 @@
           "difficulty": "hard",
           "reason": "看出书架深处的暗门 + 地板上的拖痕",
           "onSuccess": {
-            "setFlags": { "found_basement_door": true },
+            "setFlags": {
+              "found_basement_door": true
+            },
             "revealText": "你顺着拖痕看过去，发现深处那排书架后掩着一扇暗门 —— 通向地下。"
           }
         },
@@ -137,7 +171,9 @@
           "difficulty": "normal",
           "reason": "感受这个空间的'氛围'",
           "onSuccess": {
-            "setFlags": { "felt_observed": true },
+            "setFlags": {
+              "felt_observed": true
+            },
             "revealText": "高处那只空荡的书缝让你产生一种被反向观察的感觉 —— 不像有人在看你，更像有什么正在透过书架间的空隙记住你。"
           }
         }
@@ -157,10 +193,20 @@
         }
       ],
       "exits": [
-        { "toScene": "scene_entrance", "condition": "玩家退回门厅" },
-        { "toScene": "scene_upstairs", "condition": "玩家上楼调查馆长办公室" },
-        { "toScene": "scene_basement", "condition": "玩家穿过暗门下到地下档案室（需要先发现暗门）" }
-      ]
+        {
+          "toScene": "scene_entrance",
+          "condition": "玩家退回门厅"
+        },
+        {
+          "toScene": "scene_upstairs",
+          "condition": "玩家上楼调查馆长办公室"
+        },
+        {
+          "toScene": "scene_basement",
+          "condition": "玩家穿过暗门下到地下档案室（需要先发现暗门）"
+        }
+      ],
+      "mood": "mystery"
     },
     {
       "id": "scene_upstairs",
@@ -178,7 +224,10 @@
           "difficulty": "hard",
           "reason": "观察办公室内的异常细节（符号 / 馆长姿态 / 桌底木盒）",
           "onSuccess": {
-            "setFlags": { "saw_corpse_and_symbols": true, "found_locked_box": true },
+            "setFlags": {
+              "saw_corpse_and_symbols": true,
+              "found_locked_box": true
+            },
             "revealText": "你的胃部一阵抽搐 —— 馆长趴在桌上，眼睛被挖空，脸上却没有挣扎过的痕迹。桌面笔记本最后一页是某种螺旋状的符号，看一眼便觉头晕。桌底有一个木盒，挂着一把小铜锁。"
           }
         },
@@ -187,7 +236,9 @@
           "difficulty": "hard",
           "reason": "辨识笔记本上的螺旋符号",
           "onSuccess": {
-            "setFlags": { "decoded_symbols": true },
+            "setFlags": {
+              "decoded_symbols": true
+            },
             "revealText": "这些符号不是任何已知人类语言。但你能感觉到它们的'排列法则'—— 像在记录某种喂养的次数。"
           }
         }
@@ -207,10 +258,20 @@
         }
       ],
       "exits": [
-        { "toScene": "scene_entrance", "condition": "玩家逃下楼" },
-        { "toScene": "scene_main_hall", "condition": "玩家走向主阅览大厅" },
-        { "toScene": "scene_basement", "condition": "玩家直接冲向地下（需要先知道地下入口）" }
-      ]
+        {
+          "toScene": "scene_entrance",
+          "condition": "玩家逃下楼"
+        },
+        {
+          "toScene": "scene_main_hall",
+          "condition": "玩家走向主阅览大厅"
+        },
+        {
+          "toScene": "scene_basement",
+          "condition": "玩家直接冲向地下（需要先知道地下入口）"
+        }
+      ],
+      "mood": "horror"
     },
     {
       "id": "scene_basement",
@@ -228,7 +289,9 @@
           "difficulty": "hard",
           "reason": "查阅木柜里那 27 本'访客小册'，理解他们的命运",
           "onSuccess": {
-            "setFlags": { "knows_27_victims": true },
+            "setFlags": {
+              "knows_27_victims": true
+            },
             "revealText": "每一本都按时间顺序记录了一位访客来图书馆的时间 / 借阅记录 / 最后停笔的位置。他们不是失踪了 —— 是被'吃进'书架里。"
           }
         },
@@ -237,7 +300,9 @@
           "difficulty": "normal",
           "reason": "理解地下档案室的'书祭'机制",
           "onSuccess": {
-            "setFlags": { "understood_book_feast": true },
+            "setFlags": {
+              "understood_book_feast": true
+            },
             "revealText": "这不是一个图书馆 —— 是一个胃。每一位读者既是来'读'的，也是来被'读'的。Pickman 馆长可能是最后一位还能主动决定何时来的人。"
           }
         }
@@ -257,8 +322,12 @@
         }
       ],
       "exits": [
-        { "toScene": "scene_ending", "condition": "玩家做出最终选择（逃 / 烧 / 留下）" }
-      ]
+        {
+          "toScene": "scene_ending",
+          "condition": "玩家做出最终选择（逃 / 烧 / 留下）"
+        }
+      ],
+      "mood": "climax"
     },
     {
       "id": "scene_ending",
@@ -275,7 +344,9 @@
           "difficulty": "normal",
           "reason": "玩家鼓起勇气选择烧档案室（需要强意志压过本能逃跑）",
           "onSuccess": {
-            "setFlags": { "chose_burn": true },
+            "setFlags": {
+              "chose_burn": true
+            },
             "revealText": "你用颤抖的手把'书祭'手稿撕下一页，凑近油灯。火苗舔上墨字的一瞬，整间档案室开始发出某种近似'呼吸'的低响。"
           }
         },
@@ -284,7 +355,9 @@
           "difficulty": "normal",
           "reason": "玩家选择夺路逃出（需要避开走廊里那个'还没下完楼'的影子）",
           "onSuccess": {
-            "setFlags": { "chose_flee": true },
+            "setFlags": {
+              "chose_flee": true
+            },
             "revealText": "你贴着墙摸过那道空荡的楼梯口，没敢回头看那个一直没真正走完的身影。冷夜的空气劈面而来，你不知道自己跑了多久。"
           }
         }
@@ -297,7 +370,8 @@
           "description": "你回想起进图书馆时签的那次到，签出栏现在到底有没有填完？"
         }
       ],
-      "exits": []
+      "exits": [],
+      "mood": "ending"
     }
   ],
   "npcs": [

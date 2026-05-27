@@ -15,7 +15,8 @@
     "gen:ai-game": "node --env-file=.env --import tsx scripts/generate-ai-game.ts",
     "create:character": "node --import tsx scripts/create-character.ts",
     "build:dist": "cd external/WebGAL && yarn build && cd ../.. && echo '✅ dist 在 external/WebGAL/packages/webgal/dist/'",
-    "serve:dist": "python3 -m http.server 4300 --directory external/WebGAL/packages/webgal/dist"
+    "serve:dist": "python3 -m http.server 4300 --directory external/WebGAL/packages/webgal/dist",
+    "deploy:prep": "bash scripts/prepare-deploy.sh"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
