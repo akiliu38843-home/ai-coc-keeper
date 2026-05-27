@@ -12,7 +12,8 @@
     "parse": "node --env-file=.env --import tsx scripts/parse-scenario.ts",
     "parse:multi": "node --env-file=.env --import tsx scripts/parse-scenario-multi.ts",
     "build:webgal": "node --import tsx scripts/build-webgal-game.ts",
-    "gen:ai-game": "node --env-file=.env --import tsx scripts/generate-ai-game.ts"
+    "gen:ai-game": "node --env-file=.env --import tsx scripts/generate-ai-game.ts",
+    "create:character": "node --import tsx scripts/create-character.ts"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
