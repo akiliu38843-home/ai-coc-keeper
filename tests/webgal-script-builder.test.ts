@@ -97,6 +97,53 @@ describe('splitIntoPages', () => {
     expect(truncateChoiceLabel('一二三四五六', 4)).toBe('一二三…');
   });
 
+  it('sceneToWebgalSection terminal scene + terminalExit 加结束按钮', () => {
+    const scene: Scene = {
+      id: 'scene_ending',
+      name: '结局',
+      description: '一切到此为止。',
+      // 无 exits = terminal
+    };
+    const out = sceneToWebgalSection(scene, {
+      terminalExit: { buttonLabel: '结束这段旅程', target: 'journey_recap' },
+    });
+    expect(out).toContain('choose:结束这段旅程:journey_recap');
+  });
+
+  it('sceneToWebgalSection 不传 terminalExit: terminal scene 无 choose', () => {
+    const scene: Scene = {
+      id: 'scene_ending',
+      name: '结局',
+      description: '一切到此为止。',
+    };
+    const out = sceneToWebgalSection(scene);
+    expect(out).not.toContain('choose:');
+  });
+
+  it('buildScenarioGame 只给最后一个 scene 加 terminal 按钮', () => {
+    const sc: Scenario = {
+      id: 'test',
+      title: '测试',
+      setting: '测试',
+      startSceneId: 's1',
+      schemaVersion: 1,
+      npcs: [],
+      scenes: [
+        { id: 's1', name: 'A', description: 'A.', exits: [{ toScene: 's2', condition: '继续' }] },
+        { id: 's2', name: 'B', description: 'B.' }, // 终结
+      ],
+    };
+    const built = buildScenarioGame(sc, new Map(), new Map(), new Map(), {
+      terminalExit: { buttonLabel: '完', target: 'journey_recap' },
+    });
+    const scenes = built.sceneFiles.get('scenes') ?? '';
+    // s1 不应该有 journey_recap 跳转 (它有自己的 exit)
+    const s1Section = scenes.split('label:s2;')[0]!;
+    expect(s1Section).not.toContain('journey_recap');
+    // s2 应该有结束按钮
+    expect(scenes).toContain('choose:完:journey_recap');
+  });
+
   it('sceneToWebgalSection 自动 truncate 超长 exit condition', () => {
     const scene: Scene = {
       id: 'scene_test',

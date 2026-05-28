@@ -196,6 +196,16 @@ export interface SceneSectionOptions {
    * 不传则不显示"第 N 幕"前缀。
    */
   sceneIndex?: number;
+  /**
+   * 终结场景（无 exits）追加一个"出口选项"，跳到指定 label。
+   *
+   *   { buttonLabel: '结束这段旅程', target: 'journey_recap' }
+   *
+   * 不传则保持默认: terminal scene 走完 narrate 自然 fall through
+   * 到文件下一行 (适合 builder 调用方在外部追加 recap label).
+   * 传了则插一个 choose 按钮让玩家"主动收尾".
+   */
+  terminalExit?: { buttonLabel: string; target: string };
 }
 
 const CHINESE_DIGITS = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
@@ -287,8 +297,10 @@ export function sceneToWebgalSection(
 
   const hasExits = scene.exits && scene.exits.length > 0;
   const hasInScene = opts.inSceneActions && opts.inSceneActions.length > 0;
+  const isTerminal = !hasExits;
+  const wantTerminalBtn = isTerminal && opts.terminalExit;
 
-  if (!hasExits && !hasInScene) {
+  if (!hasExits && !hasInScene && !wantTerminalBtn) {
     return lines.join('\n');
   }
 
@@ -314,6 +326,12 @@ export function sceneToWebgalSection(
       const safeLabel = escapeForWebgal(truncateChoiceLabel(e.condition));
       choiceParts.push(`${safeLabel}:${target}`);
     });
+  }
+  // terminal scene 末尾追加 "结束" 按钮 → 跳到 recap/launcher (调用方决定 target).
+  // 注意: terminalExit.target 不过 pfx (调用方传的就是最终 label, 跨 prefix 全局可达).
+  if (wantTerminalBtn && opts.terminalExit) {
+    const safeLabel = escapeForWebgal(truncateChoiceLabel(opts.terminalExit.buttonLabel));
+    choiceParts.push(`${safeLabel}:${opts.terminalExit.target}`);
   }
   lines.push(`choose:${choiceParts.join('|')};`);
 
@@ -411,6 +429,13 @@ export interface BuildScenarioGameInputOptions {
   character?: Character;
   /** label 前缀（多剧本 launcher 时避免 label 冲突）*/
   labelPrefix?: string;
+  /**
+   * 最后一个 scene (无 exits) 末尾追加的 "结束" 按钮.
+   * 比如 gen:ai-game 传 `{ buttonLabel: '结束这段旅程', target: 'journey_recap' }`,
+   * launcher 传 `{ buttonLabel: '回到剧本选择', target: '_launcher' }`.
+   * 不传则 terminal scene 走完 narrate 后只能停留在 choose 菜单循环.
+   */
+  terminalExit?: { buttonLabel: string; target: string };
 }
 
 export function buildScenarioGame(
@@ -433,6 +458,7 @@ export function buildScenarioGame(
 
   // 所有 scenes 写到一个文件里（用 label 区分），简化 routing
   const sceneFiles = new Map<string, string>();
+  const lastSceneIdx = scenario.scenes.length - 1;
   const allScenesTxt = scenario.scenes
     .map((s, i) => {
       const sceneOpts: SceneSectionOptions = { sceneIndex: i + 1 };
@@ -443,6 +469,10 @@ export function buildScenarioGame(
       if (trans !== undefined) sceneOpts.transitionActions = trans;
       const inScene = perSceneInSceneActions.get(s.id);
       if (inScene !== undefined) sceneOpts.inSceneActions = inScene;
+      // 只给最后一个 scene 注入 terminal exit (其他 scene 即使没 exits 也不需要)
+      if (i === lastSceneIdx && opts.terminalExit) {
+        sceneOpts.terminalExit = opts.terminalExit;
+      }
       return sceneToWebgalSection(s, sceneOpts);
     })
     .join('\n\n');

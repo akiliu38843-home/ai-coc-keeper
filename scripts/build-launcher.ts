@@ -102,11 +102,12 @@ async function main(): Promise<void> {
   // 每个 scenario 的内容 (labelPrefix 隔离)
   for (const s of scenarios) {
     lines.push(`;------ ${s.title} ------`);
-    const built = buildScenarioGame(
-      s,
-      new Map(), new Map(), new Map(),
-      char ? { character: char, labelPrefix: s.id } : { labelPrefix: s.id },
-    );
+    const baseOpts = {
+      labelPrefix: s.id,
+      terminalExit: { buttonLabel: '回剧本选择', target: '_launcher' },
+    };
+    const opts = char ? { ...baseOpts, character: char } : baseOpts;
+    const built = buildScenarioGame(s, new Map(), new Map(), new Map(), opts);
     // built.startTxt 含 jumpLabel:<startSceneId>, 但我们已经直接跳了, 跳过
     // 直接用 sceneFiles.scenes (所有 scene labels)
     lines.push(built.sceneFiles.get('scenes') ?? '');

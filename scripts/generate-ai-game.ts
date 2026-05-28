@@ -10,6 +10,7 @@
 import { readFile, writeFile, copyFile, access } from 'node:fs/promises';
 import { updateWebGalConfig } from '../src/adapter/webgal-config.js';
 import { installWebgalTheme } from '../src/adapter/install-theme.js';
+import { buildJourneyRecap } from '../src/adapter/build-journey-recap.js';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadScenarioFromJson } from '../src/engine/scenario-validator.js';
@@ -147,11 +148,16 @@ async function main(): Promise<void> {
   // COC 7e 规则: "单日累计损失 ≥ 1/5 maxSanity" → 长期心智失常
   // V0 简化: 整本剧本作为"一日", 累计 >= maxSanity/5 触发 (且只触发一次)
   let sanityLossAccum = 0;
+  let hpLossAccum = 0;
+  let minSanity = char.maxSanity;
+  let minHp = char.maxHp;
   const indefThreshold = Math.floor(char.maxSanity / 5);
   let indefTriggered = char.conditions.some((c) => c.type === 'indef_insanity');
   const perSceneActions = new Map<string, LlmAction[]>();
   const perSceneTransitions = new Map<string, Map<number, LlmAction[]>>();
   const perSceneInScene = new Map<string, InSceneAction[]>();
+  // 回顾页用: 走过的 scene 名顺序
+  const visitedSceneNames: string[] = [];
 
   // ★ 关键改造: 整本剧本共享 ONE narrative + ONE LlmAdapter,
   // 让后续 scene narrate 看得到前面 scene 的"假定主路径"选择历史.
@@ -172,6 +178,8 @@ async function main(): Promise<void> {
     const amount = typeof dmgSpec === 'number' ? dmgSpec : rollDice(dmgSpec, rng);
     if (amount <= 0) return '';
     const result = applyDamage(char, { amount, source: reason, physical });
+    hpLossAccum += result.actualDamage;
+    if (char.currentHp < minHp) minHp = char.currentHp;
     let badge = `[HP -${result.actualDamage} → ${char.currentHp}/${char.maxHp}]`;
     if (result.triggeredConditions.includes('major_wound')) badge += ' [重伤]';
     if (result.triggeredConditions.includes('unconscious')) badge += ' [昏迷]';
@@ -184,6 +192,7 @@ async function main(): Promise<void> {
     if (actualLoss <= 0) return '';
     char.currentSanity = Math.max(0, char.currentSanity - actualLoss);
     sanityLossAccum += actualLoss;
+    if (char.currentSanity < minSanity) minSanity = char.currentSanity;
     let badge = `[心智 -${actualLoss} → ${char.currentSanity}/${char.maxSanity}]`;
     // 单次 >= 5 → 临时心智失常
     if (actualLoss >= 5 && !char.conditions.some((c) => c.type === 'temp_insanity')) {
@@ -215,6 +224,7 @@ async function main(): Promise<void> {
   // 假定的主路径:进 scene 时 narrative 当前位置 = scene.id (玩家"走"到这里)
   for (let i = 0; i < scenario.scenes.length; i++) {
     const scene = scenario.scenes[i]!;
+    visitedSceneNames.push(scene.name);
     console.log(`[${i + 1}/${scenario.scenes.length}] LLM: ${scene.id} · ${scene.name}`);
     // 把 narrative 跳到当前 scene (会自动加 visited)
     sharedNarrative.jumpToScene(scene.id);
@@ -370,12 +380,30 @@ async function main(): Promise<void> {
   }
 
   console.log(`\n🔨 构建 WebGAL game...`);
-  // 重置 char 状态为初始值再传给 builder（intro 应显示 60/60，不是被 mutate 过的最终值）
+
+  // 先快照"最终态" (在 reset 之前), 给结局回顾页用
+  const journeyRecap = buildJourneyRecap({
+    character: char,
+    initial: { sanity: char.maxSanity, hp: char.maxHp },
+    finalSanity: char.currentSanity,
+    finalHp: char.currentHp,
+    minSanity,
+    minHp,
+    sanityLossAccum,
+    hpLossAccum,
+    conditions: [...char.conditions],
+    visitedSceneNames,
+  });
+
+  // 重置 char 状态为初始值再传给 builder(intro 应显示 60/60, 不是被 mutate 过的最终值)
   char.currentSanity = char.maxSanity;
   char.currentHp = char.maxHp;
   char.currentMp = char.maxMp;
   char.conditions = [];
-  const built = buildScenarioGame(scenario, perSceneActions, perSceneTransitions, perSceneInScene, { character: char });
+  const built = buildScenarioGame(scenario, perSceneActions, perSceneTransitions, perSceneInScene, {
+    character: char,
+    terminalExit: { buttonLabel: '结束这段旅程', target: 'journey_recap' },
+  });
 
   // 同时更新 config.txt 让 WebGAL 标题栏跟随 scenario.title
   const configPath = join(WEBGAL_SCENE_DIR, '..', 'config.txt');
@@ -385,7 +413,8 @@ async function main(): Promise<void> {
 
   const startTxtPath = join(WEBGAL_SCENE_DIR, 'start.txt');
   await backupIfNeeded(startTxtPath);
-  const fullContent = `${built.startTxt}\n\n${built.sceneFiles.get('scenes')}`;
+  const fullContent =
+    `${built.startTxt}\n\n${built.sceneFiles.get('scenes')}\n\n${journeyRecap}`;
   await writeFile(startTxtPath, fullContent, 'utf-8');
   console.log(`✏️  写入 ${startTxtPath}`);
   console.log(`   ${fullContent.length} 字符 · ${perSceneActions.size}/${scenario.scenes.length} 场景含 AI 叙事`);
