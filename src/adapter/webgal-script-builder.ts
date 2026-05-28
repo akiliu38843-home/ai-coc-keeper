@@ -70,7 +70,9 @@ export function escapeForWebgal(text: string): string {
  *
  * 这样 LLM 写得再长, 文字框也不会被切掉 —— 每页都能完整看完, 玩家点一下翻下一页.
  */
-const MAX_PAGE_LEN = 42;
+// 单页字符上限. 设小一点宁可多翻几页, 也不让任何一页溢出文字框.
+// 经验值: 30 中文字符 ≈ 文字框 1-2 行, 永远不会到第 3 行触底.
+const MAX_PAGE_LEN = 30;
 export function splitIntoPages(text: string, maxLen: number = MAX_PAGE_LEN): string[] {
   if (!text) return [];
   const sentences = text
