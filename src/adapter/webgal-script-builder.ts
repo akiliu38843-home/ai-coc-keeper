@@ -60,28 +60,76 @@ export function escapeForWebgal(text: string): string {
     .replace(/\n/g, ' '); // 单行 DSL，多行折成一行
 }
 
+/**
+ * 把一段叙事 / 对话拆成多条 "页", 每条变成 WebGAL 独立的一行 (玩家点击推进).
+ *
+ * 策略:
+ *   1. 先按中文 / 英文句号 / 问号 / 感叹号断句, 保留标点
+ *   2. 单句仍超过 maxLen (默认 42 字) 时, 在句中最后一个 ，/ 、/ ；/ ;/ ,/ — 处再切一刀
+ *   3. trim, 去掉空段
+ *
+ * 这样 LLM 写得再长, 文字框也不会被切掉 —— 每页都能完整看完, 玩家点一下翻下一页.
+ */
+const MAX_PAGE_LEN = 42;
+export function splitIntoPages(text: string, maxLen: number = MAX_PAGE_LEN): string[] {
+  if (!text) return [];
+  const sentences = text
+    .split(/(?<=[。！？!?])(?=\s*\S)/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+  const pages: string[] = [];
+  for (const sent of sentences) {
+    if (sent.length <= maxLen) { pages.push(sent); continue; }
+    let remaining = sent;
+    while (remaining.length > maxLen) {
+      const window = remaining.slice(0, maxLen);
+      const cutMatch = window.match(/^(.*[，、；,—])([^，、；,—]*)$/);
+      if (cutMatch && cutMatch[1] && cutMatch[1].length > 0) {
+        pages.push(cutMatch[1].trim());
+        remaining = (cutMatch[2] + remaining.slice(maxLen)).trim();
+      } else {
+        pages.push(window.trim());
+        remaining = remaining.slice(maxLen).trim();
+      }
+    }
+    if (remaining.length > 0) pages.push(remaining);
+  }
+  return pages;
+}
+
+/** 把一段叙事文本转成多条 WebGAL narrate 行 (旁白模式, 无 speaker 前缀). */
+export function narrateTextToLines(text: string): string[] {
+  return splitIntoPages(text).map((p) => `${escapeForWebgal(p)};`);
+}
+
+/** 把一段对话转成多条 WebGAL dialogue 行, speaker 在每页前都重复出现. */
+export function dialogueTextToLines(speaker: string, text: string): string[] {
+  const esc = escapeForWebgal(speaker);
+  return splitIntoPages(text).map((p) => `${esc}:${escapeForWebgal(p)};`);
+}
+
 // ─── 单个 LlmAction → WebGAL 行 ──────────────────────
 
 export function actionToWebgalLines(action: LlmAction): string[] {
   const lines: string[] = [];
   switch (action.type) {
     case 'narrate':
-      lines.push(`${escapeForWebgal(action.text)};`);
+      lines.push(...narrateTextToLines(action.text));
       break;
 
     case 'dialogue':
-      lines.push(`${escapeForWebgal(action.speaker)}:${escapeForWebgal(action.text)};`);
+      lines.push(...dialogueTextToLines(action.speaker, action.text));
       break;
 
     case 'request_check':
       // V0：检定由引擎处理，这里只标记给后续 adapter 用
       lines.push(`;[check] skill=${action.skill} difficulty=${action.difficulty}`);
-      lines.push(`${escapeForWebgal(action.text)};`);
+      lines.push(...narrateTextToLines(action.text));
       lines.push(`;[/check] rationale=${escapeForWebgal(action.rationale)}`);
       break;
 
     case 'jump_scene':
-      if (action.text) lines.push(`${escapeForWebgal(action.text)};`);
+      if (action.text) lines.push(...narrateTextToLines(action.text));
       lines.push(`jumpLabel:${action.toScene};`);
       break;
 
@@ -92,7 +140,7 @@ export function actionToWebgalLines(action: LlmAction): string[] {
       else if (typeof action.value === 'number') valLiteral = String(action.value);
       else valLiteral = `"${escapeForWebgal(action.value)}"`;
       lines.push(`setVar:${action.flag}=${valLiteral};`);
-      if (action.text) lines.push(`${escapeForWebgal(action.text)};`);
+      if (action.text) lines.push(...narrateTextToLines(action.text));
       break;
   }
   return lines;
@@ -219,7 +267,7 @@ export function sceneToWebgalSection(
 
   // 场景主叙事
   if (!opts.actions || opts.actions.length === 0) {
-    lines.push(`${escapeForWebgal(scene.description)};`);
+    lines.push(...narrateTextToLines(scene.description));
   } else {
     lines.push(...opts.actions.flatMap((a) => actionToWebgalLines(a)));
   }
@@ -258,7 +306,7 @@ export function sceneToWebgalSection(
     for (const [i, action] of opts.inSceneActions.entries()) {
       lines.push('');
       lines.push(`label:${pfx(inSceneActionLabelName(scene.id, i), p)};`);
-      lines.push(`${escapeForWebgal(action.resultNarrate)};`);
+      lines.push(...narrateTextToLines(action.resultNarrate));
       lines.push(`jumpLabel:${choicesLabel};`);
     }
   }

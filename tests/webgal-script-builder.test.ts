@@ -6,6 +6,7 @@ import {
   actionsToWebgalScript,
   sceneToWebgalSection,
   buildScenarioGame,
+  splitIntoPages,
 } from '../src/adapter/webgal-script-builder.js';
 import type { LlmAction } from '../src/llm/adapter.js';
 import type { Scene, Scenario } from '../src/types/scenario.js';
@@ -31,6 +32,63 @@ describe('escapeForWebgal', () => {
 
   it('换行折单行', () => {
     expect(escapeForWebgal('一行\n二行')).toBe('一行 二行');
+  });
+});
+
+// ─── splitIntoPages: 把长 narrate 按句号自动拆页 ──────
+
+describe('splitIntoPages', () => {
+  it('短句不拆', () => {
+    expect(splitIntoPages('你好。')).toEqual(['你好。']);
+  });
+
+  it('按中文句号拆', () => {
+    const out = splitIntoPages('第一句。第二句。第三句。');
+    expect(out).toEqual(['第一句。', '第二句。', '第三句。']);
+  });
+
+  it('按问号/感叹号拆', () => {
+    expect(splitIntoPages('真的吗？怎么会！我不信。')).toEqual([
+      '真的吗？', '怎么会！', '我不信。',
+    ]);
+  });
+
+  it('单句超 maxLen 时按逗号二切', () => {
+    const longSent =
+      '湿冷的咸味贴在喉咙里，鱼腥味比记忆中任何渔港都浓得多，像是某种过期发酵的东西飘了上来。';
+    const out = splitIntoPages(longSent, 30);
+    expect(out.length).toBeGreaterThanOrEqual(2);
+    expect(out.every((p) => p.length <= 35)).toBe(true);
+  });
+
+  it('保留破折号不当切点', () => {
+    const out = splitIntoPages('一段话 —— 接下来的部分。');
+    expect(out).toEqual(['一段话 —— 接下来的部分。']);
+  });
+
+  it('空字符串返回空', () => {
+    expect(splitIntoPages('')).toEqual([]);
+  });
+
+  it('narrate action 自动拆多行', () => {
+    const action: LlmAction = {
+      type: 'narrate',
+      text: '推开沉重的橡木大门。一股潮湿的霉味扑面而来。月光从破碎的彩绘玻璃漏进来。',
+    };
+    const out = actionToWebgalLines(action);
+    expect(out.length).toBe(3);
+    expect(out[0]).toBe('推开沉重的橡木大门。;');
+  });
+
+  it('dialogue 每页都带 speaker', () => {
+    const action: LlmAction = {
+      type: 'dialogue',
+      speaker: 'Hattie',
+      text: '欢迎光临。今晚住一晚吗？外面雾很重。',
+    };
+    const out = actionToWebgalLines(action);
+    expect(out.every((line) => line.startsWith('Hattie:'))).toBe(true);
+    expect(out.length).toBe(3);
   });
 });
 
