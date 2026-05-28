@@ -7,6 +7,7 @@ import {
   sceneToWebgalSection,
   buildScenarioGame,
   splitIntoPages,
+  truncateChoiceLabel,
 } from '../src/adapter/webgal-script-builder.js';
 import type { LlmAction } from '../src/llm/adapter.js';
 import type { Scene, Scenario } from '../src/types/scenario.js';
@@ -78,6 +79,41 @@ describe('splitIntoPages', () => {
     const out = actionToWebgalLines(action);
     expect(out.length).toBe(3);
     expect(out[0]).toBe('推开沉重的橡木大门。;');
+  });
+
+  it('truncateChoiceLabel: 短 label 不动', () => {
+    expect(truncateChoiceLabel('上楼')).toBe('上楼');
+    expect(truncateChoiceLabel('查看接待台登记簿')).toBe('查看接待台登记簿');
+  });
+
+  it('truncateChoiceLabel: 超过 18 字 truncate 加 …', () => {
+    const long = '《雾港夜行》 — 1932 年新英格兰沿海小镇 Bramble 港';
+    const out = truncateChoiceLabel(long);
+    expect(out.length).toBe(18);
+    expect(out.endsWith('…')).toBe(true);
+  });
+
+  it('truncateChoiceLabel: 自定义 maxLen', () => {
+    expect(truncateChoiceLabel('一二三四五六', 4)).toBe('一二三…');
+  });
+
+  it('sceneToWebgalSection 自动 truncate 超长 exit condition', () => {
+    const scene: Scene = {
+      id: 'scene_test',
+      name: '测试场景',
+      description: '一段描述。',
+      exits: [
+        {
+          toScene: 'next',
+          condition: '走出门外去看看那边到底发生了什么以及为什么这么吵',
+        },
+      ],
+    };
+    const out = sceneToWebgalSection(scene);
+    const chooseLine = out.split('\n').find((l) => l.startsWith('choose:'))!;
+    const labelPart = chooseLine.match(/choose:(.*?):/)?.[1] ?? '';
+    expect(labelPart.length).toBeLessThanOrEqual(18);
+    expect(labelPart.endsWith('…')).toBe(true);
   });
 
   it('dialogue 每页都带 speaker', () => {

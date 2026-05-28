@@ -245,6 +245,17 @@ function pfx(name: string, prefix?: string): string {
   return prefix ? `${prefix}__${name}` : name;
 }
 
+/**
+ * choose 按钮文字硬上限. WebGAL 选项按钮宽度有限,
+ * 中文 ≥ 18 字 / Latin ≥ 22 字会被右侧截掉 (CSS 截不是省略号).
+ * 主动 truncate 加 … 比"看不全"好.
+ */
+const MAX_CHOICE_LABEL_LEN = 18;
+export function truncateChoiceLabel(label: string, maxLen: number = MAX_CHOICE_LABEL_LEN): string {
+  if (label.length <= maxLen) return label;
+  return label.slice(0, maxLen - 1) + '…';
+}
+
 export function sceneToWebgalSection(
   scene: Scene,
   opts: SceneSectionOptions = {},
@@ -287,10 +298,12 @@ export function sceneToWebgalSection(
   lines.push(`label:${choicesLabel};`);
 
   // 拼 choose 命令：先 in-scene actions，后 exits
+  // 所有按钮 label 都过 truncateChoiceLabel — WebGAL 按钮宽度有限不能溢出.
   const choiceParts: string[] = [];
   if (opts.inSceneActions) {
     opts.inSceneActions.forEach((a, i) => {
-      choiceParts.push(`${escapeForWebgal(a.label)}:${pfx(inSceneActionLabelName(scene.id, i), p)}`);
+      const safeLabel = escapeForWebgal(truncateChoiceLabel(a.label));
+      choiceParts.push(`${safeLabel}:${pfx(inSceneActionLabelName(scene.id, i), p)}`);
     });
   }
   if (scene.exits) {
@@ -298,7 +311,8 @@ export function sceneToWebgalSection(
       const target = opts.transitionActions?.has(i)
         ? pfx(transitionLabelName(scene.id, i), p)
         : pfx(e.toScene, p);
-      choiceParts.push(`${escapeForWebgal(e.condition)}:${target}`);
+      const safeLabel = escapeForWebgal(truncateChoiceLabel(e.condition));
+      choiceParts.push(`${safeLabel}:${target}`);
     });
   }
   lines.push(`choose:${choiceParts.join('|')};`);

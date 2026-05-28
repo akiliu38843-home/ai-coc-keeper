@@ -13,7 +13,7 @@ import { readFile, writeFile, copyFile, access, readdir } from 'node:fs/promises
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadScenarioFromJson } from '../src/engine/scenario-validator.js';
-import { buildScenarioGame } from '../src/adapter/webgal-script-builder.js';
+import { buildScenarioGame, truncateChoiceLabel } from '../src/adapter/webgal-script-builder.js';
 import { updateWebGalConfig } from '../src/adapter/webgal-config.js';
 import { installWebgalTheme } from '../src/adapter/install-theme.js';
 import { listCharacters, loadCharacter } from '../src/character/save-load.js';
@@ -84,9 +84,16 @@ async function main(): Promise<void> {
     lines.push(`旁白:${escapeForWebgal(`扮演 —— ${char.name}（${char.occupation}, ${char.age} 岁）  HP ${char.maxHp}  心智 ${char.maxSanity}  幸运 ${char.luck}`)};`);
   }
 
+  // 把每本剧本的副标题作为 narrate 提前展示, 玩家先读到 setting 再做选择,
+  // 而 choose 按钮本身保持极简 (只放 "《标题》" 不带描述).
+  scenarios.forEach((s, i) => {
+    lines.push(`旁白:${escapeForWebgal(`${i + 1}. 《${s.title}》 — ${s.setting}`)};`);
+  });
+
   // 启动 choose: 每本剧本一项, 跳到 <scenarioId>__<startSceneId>
+  // WebGAL choose 按钮单行宽度有限, label 总长收紧到 ≤ 18 字 (Latin 字符更占位).
   const choiceParts = scenarios.map((s) => {
-    const label = `《${s.title}》 — ${s.setting.slice(0, 28)}`;
+    const label = buildChoiceLabel(s.title);
     return `${escapeForWebgal(label)}:${s.id}__${s.startSceneId}`;
   });
   lines.push(`choose:${choiceParts.join('|')};`);
@@ -126,6 +133,14 @@ async function main(): Promise<void> {
 // 注意: buildScenarioGame 还不支持 labelPrefix 在 startTxt 里, 这里先用 sceneFiles 拼.
 // 一个限制: intro 段会在每个 scenario 的 startTxt 里, 但我们只用 sceneFiles, 所以 intro 丢了.
 // 折衷: launcher 自己显示玩家角色信息, 不再每剧本重复 intro.
+
+/**
+ * 把 scenario 标题做成 WebGAL choose 按钮 label.
+ * 实际 truncate 走 truncateChoiceLabel (18 字硬限), 详细 setting 放在 narrate 里展示.
+ */
+function buildChoiceLabel(title: string): string {
+  return truncateChoiceLabel(`《${title}》`);
+}
 
 await main().catch((e: unknown) => {
   console.error('❌', e instanceof Error ? e.stack ?? e.message : String(e));
