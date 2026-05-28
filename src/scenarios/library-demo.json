@@ -203,7 +203,7 @@
         },
         {
           "toScene": "scene_basement",
-          "condition": "玩家穿过暗门下到地下档案室（需要先发现暗门）"
+          "condition": "穿暗门去地下档案室"
         }
       ],
       "mood": "mystery"
@@ -268,7 +268,7 @@
         },
         {
           "toScene": "scene_basement",
-          "condition": "玩家直接冲向地下（需要先知道地下入口）"
+          "condition": "直接冲向地下"
         }
       ],
       "mood": "horror"
@@ -322,10 +322,9 @@
         }
       ],
       "exits": [
-        {
-          "toScene": "scene_ending",
-          "condition": "玩家做出最终选择（逃 / 烧 / 留下）"
-        }
+        { "toScene": "scene_ending", "condition": "烧掉档案室" },
+        { "toScene": "scene_ending", "condition": "逃出图书馆" },
+        { "toScene": "scene_ending", "condition": "留下当馆长" }
       ],
       "mood": "climax"
     },

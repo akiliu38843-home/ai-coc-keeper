@@ -67,6 +67,23 @@ describe('splitIntoPages', () => {
     expect(out).toEqual(['一段话 —— 接下来的部分。']);
   });
 
+  it('单句无逗号超 maxLen: 不许硬切, 保持完整句', () => {
+    // 一句话超过 maxLen 但内部没有任何可切标点 —— builder 必须保持原句完整
+    // 不能在词中间硬切 (2026-05-28 老板反馈: 保证每个至少是一个完整的句子)
+    const longNoComma = '主动把自己交出去走向螺旋祭坛闭上眼睛听见海浪和吟唱。';
+    const out = splitIntoPages(longNoComma, 20);
+    expect(out).toEqual([longNoComma]);
+  });
+
+  it('多句无逗号超 maxLen: 每个完整句各占一页', () => {
+    const text = '主动把自己交出去走向螺旋祭坛。闭上眼听见海浪和吟唱。';
+    const out = splitIntoPages(text, 20);
+    expect(out).toEqual([
+      '主动把自己交出去走向螺旋祭坛。',
+      '闭上眼听见海浪和吟唱。',
+    ]);
+  });
+
   it('空字符串返回空', () => {
     expect(splitIntoPages('')).toEqual([]);
   });
@@ -86,10 +103,11 @@ describe('splitIntoPages', () => {
     expect(truncateChoiceLabel('查看接待台登记簿')).toBe('查看接待台登记簿');
   });
 
-  it('truncateChoiceLabel: 超过 18 字 truncate 加 …', () => {
+  it('truncateChoiceLabel: 超过默认上限 truncate 加 …', () => {
     const long = '《雾港夜行》 — 1932 年新英格兰沿海小镇 Bramble 港';
     const out = truncateChoiceLabel(long);
-    expect(out.length).toBe(18);
+    // 默认 14 字硬限 (经验值 — 实测中文 ≥ 14 会触发可见 truncate)
+    expect(out.length).toBe(14);
     expect(out.endsWith('…')).toBe(true);
   });
 

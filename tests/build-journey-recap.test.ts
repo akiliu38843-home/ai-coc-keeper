@@ -40,13 +40,16 @@ describe('buildJourneyRecap', () => {
       visitedSceneNames: ['图书馆门厅', '接待台', '主阅览大厅'],
     });
     expect(out).toContain('label:journey_recap;');
-    expect(out).toContain('intro:你的旅程');
+    // 现在是单 intro 多行 (| 分隔), 不再切到底部 旁白
+    expect(out).toContain('intro:你的旅程|');
     expect(out).toContain('心智度 60 → 45');
-    expect(out).toContain('最低跌到 38');
+    expect(out).toContain('最低 38');
     expect(out).toContain('HP 11 → 9');
     expect(out).toContain('图书馆门厅 → 接待台 → 主阅览大厅');
     expect(out).toContain('你回来了');
     expect(out).toContain('end;');
+    // 不应该再有底部 旁白 行
+    expect(out).not.toMatch(/^旁白:/m);
   });
 
   it('心智 SAN 跌到 0: 不是同一个人结语', () => {

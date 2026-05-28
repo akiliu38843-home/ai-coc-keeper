@@ -100,17 +100,36 @@ async function main(): Promise<void> {
   lines.push('');
 
   // 每个 scenario 的内容 (labelPrefix 隔离)
+  // launcher 模式没有 char state tracking, 但仍然要给玩家一张"你完成了 X"的结局卡,
+  // 不能让最后一个 scene 直接弹回菜单 (太突兀).
+  // 流程: terminal scene → "结束这段旅程" 按钮 → <id>__recap → "回剧本选择" → _launcher
   for (const s of scenarios) {
     lines.push(`;------ ${s.title} ------`);
+    const recapLabel = `${s.id}__recap`;
     const baseOpts = {
       labelPrefix: s.id,
-      terminalExit: { buttonLabel: '回剧本选择', target: '_launcher' },
+      terminalExit: { buttonLabel: '结束这段旅程', target: recapLabel },
     };
     const opts = char ? { ...baseOpts, character: char } : baseOpts;
     const built = buildScenarioGame(s, new Map(), new Map(), new Map(), opts);
-    // built.startTxt 含 jumpLabel:<startSceneId>, 但我们已经直接跳了, 跳过
-    // 直接用 sceneFiles.scenes (所有 scene labels)
     lines.push(built.sceneFiles.get('scenes') ?? '');
+    // 每剧本的简版 recap.
+    // ★ 一张 intro 多行卡 (用 | 分隔), 一次性把 4 行依次淡入显示, 不切到底部文字框.
+    // 之前用 "intro 1 行 + 旁白 N 行" 两段式, 实测用户卡在 intro 后, 看不到旁白接力.
+    const sceneList = s.scenes.slice(0, 6).map((sc) => sc.name).join(' → ');
+    const introLines = [
+      '你的旅程',
+      `你走完了 《${s.title}》`,
+      `走过：${sceneList}`,
+      '你回来了。',
+    ];
+    // intro 自带 | 做分隔符, 内容里不能含 | (这里是我们自己写的, 控)
+    const introContent = introLines.map(escapeForWebgal).join('|');
+    lines.push('');
+    lines.push(`;------ recap: ${s.title} ------`);
+    lines.push(`label:${recapLabel};`);
+    lines.push(`intro:${introContent} -animation=fadeIn -fontColor=rgba(216, 201, 166, 1) -fontSize=medium -delayTime=2200;`);
+    lines.push(`choose:回剧本选择:_launcher;`);
     lines.push('');
   }
 

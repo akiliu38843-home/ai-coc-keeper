@@ -47,8 +47,8 @@
         }
       ],
       "exits": [
-        { "toScene": "scene_inn", "condition": "玩家走向 Gilman 客栈" },
-        { "toScene": "scene_church", "condition": "玩家无视客栈直奔镇中心" }
+        { "toScene": "scene_inn", "condition": "走向 Gilman 客栈" },
+        { "toScene": "scene_church", "condition": "直奔镇中心" }
       ]
     },
     {
@@ -106,8 +106,8 @@
         }
       ],
       "exits": [
-        { "toScene": "scene_church", "condition": "玩家借口透气，溜出客栈往镇中心走" },
-        { "toScene": "scene_dawn", "condition": "玩家试图返回码头夺路逃离" }
+        { "toScene": "scene_church", "condition": "溜出客栈进镇" },
+        { "toScene": "scene_dawn", "condition": "夺路回码头" }
       ]
     },
     {
@@ -165,7 +165,7 @@
         }
       ],
       "exits": [
-        { "toScene": "scene_dawn", "condition": "玩家退出教堂，决定在黎明前做出选择" }
+        { "toScene": "scene_dawn", "condition": "退出教堂等黎明" }
       ]
     },
     {

@@ -73,6 +73,17 @@ export function escapeForWebgal(text: string): string {
 // 单页字符上限. 设小一点宁可多翻几页, 也不让任何一页溢出文字框.
 // 经验值: 30 中文字符 ≈ 文字框 1-2 行, 永远不会到第 3 行触底.
 const MAX_PAGE_LEN = 30;
+
+/**
+ * 把一段长 narrate / dialogue 切成多页 (WebGAL 一行一页, 玩家点击推进).
+ *
+ * 规则 (按优先级):
+ *   1. 先按句号 / 问号 / 感叹号断句, 保留标点 (这一步保证每页至少是完整句)
+ *   2. 单句仍 > maxLen 时, 在 maxLen 窗口内最后一个 ，/ 、/ ；/ — 处再切
+ *   3. 没有任何可切点 (一句话没有逗号) —— **保持原句完整**, 哪怕超过 maxLen.
+ *      宁可让单页字数多一点, 也绝不在词中间硬切.
+ *      ↑ 这条是 2026-05-28 老板提醒的: "保证每个至少是一个完整的句子"
+ */
 export function splitIntoPages(text: string, maxLen: number = MAX_PAGE_LEN): string[] {
   if (!text) return [];
   const sentences = text
@@ -83,15 +94,16 @@ export function splitIntoPages(text: string, maxLen: number = MAX_PAGE_LEN): str
   for (const sent of sentences) {
     if (sent.length <= maxLen) { pages.push(sent); continue; }
     let remaining = sent;
-    while (remaining.length > maxLen) {
+    let progressed = true;
+    while (progressed && remaining.length > maxLen) {
       const window = remaining.slice(0, maxLen);
       const cutMatch = window.match(/^(.*[，、；,—])([^，、；,—]*)$/);
       if (cutMatch && cutMatch[1] && cutMatch[1].length > 0) {
         pages.push(cutMatch[1].trim());
         remaining = (cutMatch[2] + remaining.slice(maxLen)).trim();
       } else {
-        pages.push(window.trim());
-        remaining = remaining.slice(maxLen).trim();
+        // ★ 没有可切点 — 不硬切, 让剩余整句作为单页输出, break.
+        progressed = false;
       }
     }
     if (remaining.length > 0) pages.push(remaining);
@@ -256,11 +268,11 @@ function pfx(name: string, prefix?: string): string {
 }
 
 /**
- * choose 按钮文字硬上限. WebGAL 选项按钮宽度有限,
- * 中文 ≥ 18 字 / Latin ≥ 22 字会被右侧截掉 (CSS 截不是省略号).
- * 主动 truncate 加 … 比"看不全"好.
+ * choose 按钮文字硬上限. WebGAL 按钮宽度有限,
+ * 实测中文 ≥ 14 字会触发可见的右侧 truncate.
+ * 已经是经验值, 老板被截字提醒过 3 次. 不要再上调.
  */
-const MAX_CHOICE_LABEL_LEN = 18;
+const MAX_CHOICE_LABEL_LEN = 14;
 export function truncateChoiceLabel(label: string, maxLen: number = MAX_CHOICE_LABEL_LEN): string {
   if (label.length <= maxLen) return label;
   return label.slice(0, maxLen - 1) + '…';
