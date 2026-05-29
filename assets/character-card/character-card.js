@@ -114,15 +114,29 @@
     }
   }
 
+  /**
+   * 判断当前是不是在玩游戏 (排除 splash 和 标题菜单).
+   *   - splash:    `.title-enter__container` 还在 (静态 HTML, JS 启动后才移除)
+   *   - 标题菜单:  `[class*="Title_main"]` 存在 (React 渲染的开始/读档/选项菜单)
+   *   - 游戏中:    上面两个都不在
+   */
+  function isInGameplay() {
+    const splashLeft = document.querySelector('.title-enter__container');
+    if (splashLeft) return false;
+    const titleMenu = document.querySelector('[class*="Title_main"]');
+    if (titleMenu) return false;
+    return true;
+  }
+
   function init() {
     fetch('/game/character.json', { cache: 'no-store' })
       .then((r) => r.ok ? r.json() : null)
       .catch(() => null)
       .then((char) => {
-        // 总是注入按钮 (没角色也显示, 点开弹"未加载角色")
         const btn = el('button', 'cthk-card-btn');
         btn.innerHTML = '📜 角色卡';
         btn.setAttribute('aria-label', '查看角色卡');
+        btn.style.display = 'none'; // 默认隐藏, 进游戏后再放出来
         document.body.appendChild(btn);
 
         const backdrop = el('div', 'cthk-card-backdrop');
@@ -138,10 +152,25 @@
             backdrop.classList.remove('open');
           }
         });
-        // ESC 关闭
         document.addEventListener('keydown', (e) => {
           if (e.key === 'Escape') backdrop.classList.remove('open');
         });
+
+        // MutationObserver: 屏幕从 splash → 标题 → 游戏 是 React 异步切换的,
+        // 监听 body 的子节点变化, 每次切换都重新算 "现在该不该显示按钮".
+        // 进游戏 → 显示. 玩家点 🏠 标题 退回菜单 → 隐藏. 游戏结束 → 隐藏.
+        let lastVisible = false;
+        const updateVisibility = () => {
+          const shouldShow = isInGameplay();
+          if (shouldShow !== lastVisible) {
+            btn.style.display = shouldShow ? '' : 'none';
+            if (!shouldShow) backdrop.classList.remove('open'); // 弹窗在玩家退回菜单时一并收
+            lastVisible = shouldShow;
+          }
+        };
+        const observer = new MutationObserver(updateVisibility);
+        observer.observe(document.body, { childList: true, subtree: true });
+        updateVisibility(); // 首次检查
       });
   }
 
