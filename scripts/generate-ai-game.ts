@@ -11,6 +11,7 @@ import { readFile, writeFile, copyFile, access } from 'node:fs/promises';
 import { updateWebGalConfig } from '../src/adapter/webgal-config.js';
 import { installWebgalTheme } from '../src/adapter/install-theme.js';
 import { buildJourneyRecap } from '../src/adapter/build-journey-recap.js';
+import { installCharacterCard, buildCharacterCardData } from '../src/adapter/install-character-card.js';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadScenarioFromJson } from '../src/engine/scenario-validator.js';
@@ -420,6 +421,10 @@ async function main(): Promise<void> {
   console.log(`   ${fullContent.length} 字符 · ${perSceneActions.size}/${scenario.scenes.length} 场景含 AI 叙事`);
 
   await installWebgalTheme(PROJECT_ROOT);
+
+  // 角色卡按钮: 把 css/js 注入 dist + 写 character.json
+  // 此时 char 已被 reset 为初始值, 适合作为"探者档案"展示
+  await installCharacterCard(PROJECT_ROOT, buildCharacterCardData(char));
 
   console.log(`\n✅ 完成 · 浏览器刷新 http://localhost:3000/ 看效果`);
 }

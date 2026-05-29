@@ -54,8 +54,8 @@ jobs:
           LLM_MODEL: ${{ secrets.LLM_MODEL }}
         run: npm run gen:ai-game src/scenarios/library-demo.json
 
-      - name: Build dist
-        run: cd external/WebGAL && yarn build
+      - name: Build dist + 注入主题/角色卡 (post-build)
+        run: npm run build:dist
 
       - uses: actions/upload-pages-artifact@v3
         with:

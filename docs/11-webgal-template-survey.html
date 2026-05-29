@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>WebGAL 模板生态调研 · 2026-05-29</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --ink:        #2a241a;
+    --ink-dim:    #6b5d44;
+    --paper:      #f7f1e1;
+    --paper-2:    #efe6cf;
+    --amber:      #b89559;
+    --blood:      #8b2c1f;
+    --border:     #d6c8a6;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Noto Serif SC", "Songti SC", "Source Han Serif", "Times New Roman", serif;
+    line-height: 1.75;
+    padding: 40px 24px;
+  }
+  main {
+    max-width: 760px;
+    margin: 0 auto;
+  }
+  header {
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 16px;
+    margin-bottom: 32px;
+  }
+  h1 { font-size: 28px; margin: 0 0 8px; color: var(--ink); letter-spacing: 0.02em; }
+  .meta { color: var(--ink-dim); font-size: 14px; }
+  h2 {
+    color: var(--ink);
+    border-left: 4px solid var(--amber);
+    padding-left: 12px;
+    margin: 36px 0 14px;
+    font-size: 20px;
+  }
+  h3 { color: var(--ink); font-size: 16px; margin: 24px 0 8px; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: var(--paper-2); color: var(--ink); font-weight: 600; }
+  td.ok { color: #2d6a2d; }
+  td.no { color: var(--blood); }
+  blockquote {
+    border-left: 3px solid var(--amber);
+    background: var(--paper-2);
+    margin: 12px 0;
+    padding: 10px 16px;
+    font-size: 15px;
+    color: var(--ink);
+  }
+  code, .code {
+    background: var(--paper-2);
+    padding: 1px 6px;
+    border-radius: 2px;
+    font-family: "SF Mono", "Menlo", monospace;
+    font-size: 13px;
+    color: var(--blood);
+  }
+  ul, ol { padding-left: 24px; }
+  li { margin: 4px 0; }
+  a { color: var(--blood); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .badge {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 10px;
+    font-size: 12px;
+    border: 1px solid var(--border);
+    color: var(--ink-dim);
+    margin-right: 4px;
+  }
+  .verdict {
+    background: var(--paper-2);
+    border: 1px solid var(--amber);
+    border-left: 6px solid var(--amber);
+    padding: 16px 20px;
+    margin: 24px 0;
+    border-radius: 2px;
+  }
+  .verdict h3 {
+    margin-top: 0;
+    color: var(--blood);
+    letter-spacing: 0.04em;
+  }
+  footer {
+    margin-top: 48px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    color: var(--ink-dim);
+    font-size: 13px;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <h1>WebGAL 模板生态调研</h1>
+  <div class="meta">
+    项目 · ai-coc-keeper &nbsp;|&nbsp;
+    日期 · 2026-05-29 &nbsp;|&nbsp;
+    场景 · 决定&quot;角色卡按钮&quot;走轻路线还是等社区现成
+  </div>
+</header>
+
+<div class="verdict">
+  <h3>一句话结论</h3>
+  <p>
+    <strong>没有现成模板能直接拿来用</strong>, 该自己写还得自己写. 但好消息是, &quot;轻路线&quot;的 2 小时 JS 注入方案不浪费 ——
+    <strong>官方模板系统目前只支持改样式 (颜色 / 字号 / 间距), 不支持加新 UI 组件</strong>. 我们想要的底部角色卡按钮 = 新组件, 走自己注入是正确选择.
+  </p>
+</div>
+
+<h2>1. 调研口子 (5 个)</h2>
+
+<table>
+  <thead>
+    <tr><th>渠道</th><th>找到了啥</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>官方文档 / 博客</td>
+      <td>WebGAL 4.5.5 有&quot;自定义 UI 模板&quot;功能, <strong>但只支持改样式</strong> (颜色 / 字号 / 间距), <strong>不支持加新组件</strong></td>
+    </tr>
+    <tr>
+      <td>官方 RFC 设计稿</td>
+      <td>明确写&quot;有限的 CSS 编辑&quot;, <strong>没规划</strong>插件化 / 第三方组件接入</td>
+    </tr>
+    <tr>
+      <td>GitHub 全部 fork (gh API 拉了 60+ 个)</td>
+      <td>全是 mirror 或个人自用, <strong>没人公开做过状态栏 / 角色卡这种新 UI</strong></td>
+    </tr>
+    <tr>
+      <td>跟 TRPG 相关的 fork</td>
+      <td>0 个. 跑团相关项目 (wiio12/trpg, TRPG-Replay-Generator) 都跟 WebGAL 无关</td>
+    </tr>
+    <tr>
+      <td>官方 issue (#719 支持多种模板)</td>
+      <td>open 状态没人接, 也没排上版本</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>2. 官方模板能改啥不能改啥</h2>
+
+<p>WebGAL 4.5.5 官方模板编辑器实际能力 (来源: <a href="https://www.openwebgal.com/en/blog/dev-note-3/">dev-note-3</a>):</p>
+
+<table>
+  <thead>
+    <tr><th>能力</th><th>支持?</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>改颜色 / 字号 / 字体 / padding / margin / hover 效果</td><td class="ok">✓ 支持</td></tr>
+    <tr><td>改 textbox / 标题界面 / 选项按钮的视觉</td><td class="ok">✓ 支持</td></tr>
+    <tr><td>加一个全新的&quot;状态栏&quot; div</td><td class="no">✗ 不支持</td></tr>
+    <tr><td>加一个底部菜单新按钮</td><td class="no">✗ 不支持</td></tr>
+    <tr><td>写自己的 React 组件挂上去</td><td class="no">✗ 不支持</td></tr>
+    <tr><td>读 WebGAL 内部 state 自己渲染面板</td><td class="no">✗ 不支持</td></tr>
+  </tbody>
+</table>
+
+<blockquote>
+  官方原话 (dev-note-3): &quot;font color, font size, background color or images, transformations, padding and margins&quot;.
+  范围被刻意限制 — RFC2 称之为&quot;有限的 CSS 编辑&quot;.
+</blockquote>
+
+<h2>3. 模板共享的现状</h2>
+
+<ul>
+  <li>官方 marketplace <strong>没有</strong></li>
+  <li>awesome-webgal 列表 <strong>没有</strong></li>
+  <li>用户私藏模板大多在 <strong>官方 QQ 群 709293432</strong> 里私下流转, 不在公开网络</li>
+  <li>没看到任何中文社区 (B 站 / 小红书 / cnmods) 有&quot;WebGAL 模板包&quot;分享潮</li>
+</ul>
+
+<h2>4. 顺手发现的 2 个能参考的 fork</h2>
+
+<table>
+  <thead>
+    <tr><th>仓库</th><th>star</th><th>做了什么 / 为什么对我们有参考价值</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><a href="https://github.com/Project-AnyGO/WebGAL-PartialEngine">Project-AnyGO/WebGAL-PartialEngine</a></td>
+      <td>6</td>
+      <td>改了底层渲染, 支持 alpha 通道录屏 + 4K. 验证了 WebGAL 可深度改造, 不是封闭引擎.</td>
+    </tr>
+    <tr>
+      <td><a href="https://github.com/KonshinHaoshin/webgal_mano">KonshinHaoshin/webgal_mano</a></td>
+      <td>5</td>
+      <td>分层立绘渲染, 是 PIXI.js 层 mod. 思路接近&quot;如何在 WebGAL 里加自己的渲染层&quot;.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>5. 决策建议</h2>
+
+<p>照原计划走 <strong>轻路线</strong>, 2 小时内出第一版底部角色卡按钮. 理由:</p>
+<ol>
+  <li>等官方模板系统升级到支持新组件, 看路线图 (4.5.0 才刚完成 title+textbox 2 个组件) 至少还要好几个版本, 不知道猴年马月</li>
+  <li>加 QQ 群淘私藏模板 ROI 低, 而且我们要的是新组件型 mod, 群里基本是样式包</li>
+  <li>我们的 &quot;TRPG 跑团 UI&quot; 在 WebGAL 用户里是小众 niche, 没人会替我们做好</li>
+</ol>
+
+<h2>6. 资料链接</h2>
+
+<ul>
+  <li><a href="https://www.openwebgal.com/en/blog/dev-note-3/">WebGAL Dev Note 3 · 自定义 UI 进展</a></li>
+  <li><a href="https://www.openwebgal.com/zh-cn/blog/dev-note-4/">WebGAL Dev Note 4 · 4.5.0 自定义 UI 发布</a></li>
+  <li><a href="https://www.openwebgal.com/zh-cn/blog/rfc2/">WebGAL UI 自定义 RFC2 设计草案</a></li>
+  <li><a href="https://github.com/OpenWebGAL/WebGAL/issues/719">issue #719: 支持多种模板 (still open)</a></li>
+  <li><a href="https://github.com/OpenWebGAL">OpenWebGAL 组织主页</a></li>
+  <li><a href="https://www.bilibili.com/video/BV1qs42137FS/">Bilibili: WebGAL 模板编辑 教程 (一)</a></li>
+  <li><a href="https://www.bilibili.com/video/BV1EJ4m1G7Mb/">Bilibili: WebGAL 模板编辑 教程 (二)</a></li>
+  <li><a href="https://www.bilibili.com/video/BV15isFe1EE4/">Bilibili: 应用自定义 UI 模板 + 实时预览演示</a></li>
+  <li><a href="https://github.com/Project-AnyGO/WebGAL-PartialEngine">fork: WebGAL-PartialEngine (alpha 通道录屏)</a></li>
+  <li><a href="https://github.com/KonshinHaoshin/webgal_mano">fork: webgal_mano (分层立绘渲染)</a></li>
+  <li><a href="https://github.com/boomwwww/webgal-mygo">fork: webgal-mygo (MyGO 专版)</a></li>
+</ul>
+
+<footer>
+  调研由 Claude Opus 4.7 协作完成 · ai-coc-keeper 项目内部存档
+</footer>
+
+</main>
+</body>
+</html>

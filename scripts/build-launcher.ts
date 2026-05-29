@@ -16,6 +16,7 @@ import { loadScenarioFromJson } from '../src/engine/scenario-validator.js';
 import { buildScenarioGame, truncateChoiceLabel } from '../src/adapter/webgal-script-builder.js';
 import { updateWebGalConfig } from '../src/adapter/webgal-config.js';
 import { installWebgalTheme } from '../src/adapter/install-theme.js';
+import { installCharacterCard, buildCharacterCardData } from '../src/adapter/install-character-card.js';
 import { listCharacters, loadCharacter } from '../src/character/save-load.js';
 import type { Character } from '../src/types/character.js';
 import type { Scenario } from '../src/types/scenario.js';
@@ -146,6 +147,10 @@ async function main(): Promise<void> {
   await updateWebGalConfig(configPath, { gameName: 'ai-coc-keeper · 单人本平台' });
 
   await installWebgalTheme(PROJECT_ROOT);
+
+  // 角色卡按钮: 注入 css/js. launcher 模式有 char 就传 char data, 没就传 null
+  // (没有时按钮仍出现, 点开提示"未加载角色")
+  await installCharacterCard(PROJECT_ROOT, char ? buildCharacterCardData(char) : null);
 
   console.log(`\n✅ 完成 · 浏览器刷新看启动选择器`);
 }

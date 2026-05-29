@@ -1,0 +1,201 @@
+/* ============================================================
+ * AI-COC-Keeper · 角色卡浮动按钮 + Modal
+ * 注入到 WebGAL dist/ 旁边, 不动 WebGAL 源码
+ * z-index: 按钮 50 / modal 100, 低于 WebGAL intro (11) 之外的所有交互
+ * ========================================================== */
+
+.cthk-card-btn {
+  position: fixed;
+  bottom: 96px;
+  right: 24px;
+  z-index: 50;
+  padding: 10px 18px;
+  background: linear-gradient(
+    180deg,
+    rgba(33, 26, 16, 0.94) 0%,
+    rgba(21, 17, 11, 0.98) 100%
+  );
+  border: 1px solid #3a2e1c;
+  border-radius: 2px;
+  color: #d8c9a6;
+  font-family: "Noto Serif SC", "Songti SC", "STSong", serif;
+  font-size: 15px;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: inset 0 0 0 1px rgba(184, 149, 89, 0.08),
+              0 4px 12px rgba(0, 0, 0, 0.5);
+  user-select: none;
+}
+
+.cthk-card-btn:hover {
+  border-color: #b89559;
+  color: #f4e8c8;
+  box-shadow: 0 0 12px rgba(184, 149, 89, 0.35),
+              inset 0 0 0 1px rgba(184, 149, 89, 0.3);
+  transform: translateX(-2px);
+}
+
+/* ----- modal 遮罩 ----- */
+.cthk-card-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.78);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.cthk-card-backdrop.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ----- modal 主面板 ----- */
+.cthk-card-modal {
+  width: min(640px, 90vw);
+  max-height: 86vh;
+  overflow-y: auto;
+  background: linear-gradient(180deg, #15110b 0%, #0a0805 100%);
+  border: 1px solid #3a2e1c;
+  border-radius: 2px;
+  padding: 28px 36px 36px;
+  color: #d8c9a6;
+  font-family: "Noto Serif SC", "Songti SC", "STSong", serif;
+  letter-spacing: 0.04em;
+  line-height: 1.7;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.8),
+              inset 0 0 0 1px rgba(184, 149, 89, 0.15);
+  transform: translateY(8px);
+  opacity: 0;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.cthk-card-backdrop.open .cthk-card-modal {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.cthk-card-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 18px;
+  border-bottom: 1px solid #3a2e1c;
+  padding-bottom: 12px;
+}
+
+.cthk-card-title {
+  color: #b89559;
+  font-size: 20px;
+  letter-spacing: 0.12em;
+}
+
+.cthk-card-close {
+  background: transparent;
+  border: 1px solid #3a2e1c;
+  color: #a89578;
+  font-size: 18px;
+  width: 30px;
+  height: 30px;
+  border-radius: 2px;
+  cursor: pointer;
+  line-height: 1;
+}
+.cthk-card-close:hover {
+  border-color: #b89559;
+  color: #f4e8c8;
+}
+
+/* ----- 各区块 ----- */
+.cthk-card-section {
+  margin: 20px 0;
+}
+.cthk-card-section h3 {
+  color: #b89559;
+  font-size: 14px;
+  letter-spacing: 0.18em;
+  margin: 0 0 10px;
+  font-weight: normal;
+  text-transform: uppercase;
+}
+
+.cthk-card-id {
+  font-size: 18px;
+  color: #f4e8c8;
+}
+.cthk-card-id-sub {
+  font-size: 14px;
+  color: #a89578;
+  margin-top: 4px;
+}
+
+/* 状态数值 (HP / 心智度 / MP / 幸运) */
+.cthk-card-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px 24px;
+}
+.cthk-card-stat {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px dashed rgba(58, 46, 28, 0.5);
+}
+.cthk-card-stat-name { color: #a89578; }
+.cthk-card-stat-val  { color: #d8c9a6; font-variant-numeric: tabular-nums; }
+
+/* 8 项属性 */
+.cthk-card-attrs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px 12px;
+}
+.cthk-card-attr {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 8px;
+  background: rgba(33, 26, 16, 0.5);
+  border: 1px solid rgba(58, 46, 28, 0.6);
+  border-radius: 2px;
+}
+.cthk-card-attr-name { color: #a89578; font-size: 12px; letter-spacing: 0.15em; }
+.cthk-card-attr-val  { color: #d8c9a6; font-variant-numeric: tabular-nums; font-weight: 600; }
+
+/* 技能列表 */
+.cthk-card-skills {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px 24px;
+}
+.cthk-card-skill {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  border-bottom: 1px dashed rgba(58, 46, 28, 0.3);
+  font-size: 14px;
+}
+.cthk-card-skill-name { color: #a89578; }
+.cthk-card-skill-val  { color: #d8c9a6; font-variant-numeric: tabular-nums; }
+
+/* 角色卡为空时的 fallback */
+.cthk-card-empty {
+  text-align: center;
+  color: #a89578;
+  padding: 32px 0;
+  font-style: italic;
+}
+
+/* 移动端窄屏 */
+@media (max-width: 480px) {
+  .cthk-card-btn { bottom: 80px; right: 12px; padding: 8px 14px; font-size: 13px; }
+  .cthk-card-modal { padding: 20px 22px 28px; }
+  .cthk-card-stats { grid-template-columns: 1fr; }
+  .cthk-card-attrs { grid-template-columns: repeat(2, 1fr); }
+  .cthk-card-skills { grid-template-columns: 1fr; }
+}
