@@ -116,15 +116,24 @@
 
   /**
    * 判断当前是不是在玩游戏 (排除 splash 和 标题菜单).
-   *   - splash:    `.title-enter__container` 还在 (静态 HTML, JS 启动后才移除)
-   *   - 标题菜单:  `[class*="Title_main"]` 存在 (React 渲染的开始/读档/选项菜单)
-   *   - 游戏中:    上面两个都不在
+   *
+   * 关键: WebGAL 的 splash 容器 .html-body__title-enter 不会从 DOM 移除,
+   * 只是会被 display:none. 必须用 offsetParent 判断"实际可见", 不能只检查存在.
+   *
+   *   - splash 可见:    `.html-body__title-enter` 还可见 → 隐藏按钮
+   *   - 标题菜单可见:  `[class*="Title_main"]` 存在 (showTitle=true) → 隐藏
+   *   - 上面两个都不可见:   游戏中 → 显示按钮
    */
+  function isVisible(el) {
+    // display:none / visibility:hidden / 父节点 display:none 都让 offsetParent 变 null
+    // (固定定位的元素例外, 但 splash 是 absolute, 没问题)
+    return !!el && el.offsetParent !== null;
+  }
   function isInGameplay() {
-    const splashLeft = document.querySelector('.title-enter__container');
-    if (splashLeft) return false;
+    const splash = document.querySelector('.html-body__title-enter');
+    if (isVisible(splash)) return false;
     const titleMenu = document.querySelector('[class*="Title_main"]');
-    if (titleMenu) return false;
+    if (isVisible(titleMenu)) return false;
     return true;
   }
 
