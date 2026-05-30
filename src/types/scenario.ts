@@ -164,6 +164,39 @@ export interface Scenario {
    * 例: `{ hasKey: false, choseToTrust: false, sawEvidence: 0 }`
    */
   initialFlags?: Record<string, boolean | number | string>;
+  /**
+   * V2 (endings L2-L3): 多结局定义.
+   *
+   * 玩家走完最后一个场景, terminalExit 跳到 ending_router, router 按顺序检查每个
+   * ending 的 conditionExpr (WebGAL -when= 表达式), **第一个匹配的 ending 触发**.
+   *
+   * 至少一个 ending 必须是 fallback (无 conditionExpr) 兜底, 否则 router 可能跳空.
+   *
+   * 不传时 builder 自动生成 2 个默认 ending (好结局 / 普通结局).
+   */
+  endings?: EndingDef[];
   /** Scenario 文件的 schema version（未来兼容用）*/
   schemaVersion: 1;
+}
+
+/**
+ * V2 (endings L2-L3): 结局定义.
+ *
+ * id 用 kebab-case (例: 'good_end' / 'true_end' / 'normal_end' / 'secret_end').
+ * conditionExpr 是 WebGAL when 语法的字符串, 例:
+ *   - `currentHp>=8 && currentSanity>=40`
+ *   - `sawAllEvidence==true`
+ *   - 不写或空串 = fallback (router 最后 fallthrough 跳到这)
+ *
+ * narrate 是 intro 多行卡内容 (每段一行, builder 用 | 拼接).
+ */
+export interface EndingDef {
+  id: string;
+  name: string;
+  narrate: string[];
+  conditionExpr?: string;
+  /** 字色 (rgba), 不传按结局类型自动 — good/暖光, normal/灰烬, secret/暗紫, true/金 */
+  fontColor?: string;
+  /** 字号 small / medium / large, 默认 large */
+  fontSize?: 'small' | 'medium' | 'large';
 }

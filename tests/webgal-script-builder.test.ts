@@ -199,6 +199,61 @@ describe('splitIntoPages', () => {
     expect(out).toContain('jumpLabel:scene_b;');
   });
 
+  it('V2 ending router: 3 个 ending 按 conditionExpr 顺序匹配 + fallback', () => {
+    const sc: Scenario = {
+      id: 'test', title: '测试', setting: '...',
+      startSceneId: 's1', schemaVersion: 1, npcs: [],
+      scenes: [{ id: 's1', name: 'A', description: 'A.' }],
+      endings: [
+        {
+          id: 'true_end', name: '真结局',
+          conditionExpr: 'sawAllEvidence==true',
+          narrate: ['你看见了一切真相。', '回去了, 但带回的不只是经历。'],
+        },
+        {
+          id: 'good_end', name: '好结局',
+          conditionExpr: 'currentHp>=8',
+          narrate: ['活着回来。', '还能走下去。'],
+        },
+        {
+          id: 'normal_end', name: '普通结局',
+          narrate: ['撑过去了。'],
+        },
+      ],
+    };
+    const built = buildScenarioGame(sc, new Map(), new Map(), new Map(), {
+      terminalExit: { buttonLabel: '完', target: 'journey_recap' },
+    });
+    const scenes = built.sceneFiles.get('scenes')!;
+    // router label
+    expect(scenes).toContain('label:ending_router;');
+    // conditional jumps 排序: true_end (要求 flag) 然后 good_end (要求 HP)
+    expect(scenes).toMatch(/jumpLabel:ending_true_end -when=sawAllEvidence==true;[\s\S]*jumpLabel:ending_good_end -when=currentHp>=8;[\s\S]*jumpLabel:ending_normal_end;/);
+    // 每个 ending 各自 intro + 跳 recap
+    expect(scenes).toContain('label:ending_true_end;');
+    expect(scenes).toContain('label:ending_good_end;');
+    expect(scenes).toContain('label:ending_normal_end;');
+    expect(scenes).toContain('intro:你看见了一切真相。|回去了, 但带回的不只是经历。');
+    expect(scenes).toMatch(/label:ending_normal_end;\nintro:撑过去了。[\s\S]*\njumpLabel:journey_recap;/);
+    // terminalExit 被改成 jumpLabel:ending_router 而不是直接 recap
+    expect(scenes).toContain('完:ending_router');
+  });
+
+  it('V2 ending router: 没指定 endings 时不启用 router (保留原 journey_recap 流程)', () => {
+    const sc: Scenario = {
+      id: 'test', title: '测试', setting: '...',
+      startSceneId: 's1', schemaVersion: 1, npcs: [],
+      scenes: [{ id: 's1', name: 'A', description: 'A.' }],
+    };
+    const built = buildScenarioGame(sc, new Map(), new Map(), new Map(), {
+      terminalExit: { buttonLabel: '完', target: 'journey_recap' },
+    });
+    const scenes = built.sceneFiles.get('scenes')!;
+    expect(scenes).not.toContain('label:ending_router;');
+    // terminalExit 直接跳 journey_recap (老流程不变)
+    expect(scenes).toContain('完:journey_recap');
+  });
+
   it('V2 flag: scenario.initialFlags 在 startTxt 顶部 setVar', () => {
     const sc: Scenario = {
       id: 'test',

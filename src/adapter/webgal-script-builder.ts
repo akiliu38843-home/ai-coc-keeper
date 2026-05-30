@@ -23,7 +23,7 @@
 //   - Scene.exits             → 转 choose: 命令
 
 import type { LlmAction } from '../llm/adapter.js';
-import type { Scene, Scenario, SceneMood } from '../types/scenario.js';
+import type { Scene, Scenario, SceneMood, EndingDef } from '../types/scenario.js';
 import type { Character } from '../types/character.js';
 import { skillTotal } from '../types/character.js';
 
@@ -630,6 +630,18 @@ export function buildScenarioGame(
   const madEndLabel = p ? `${p}__bad_end_mad` : 'bad_end_mad';
   const hasDeathCheck = !!opts.perSceneEndState;
 
+  // V2 (endings L2-L3): ending router 准备
+  // 没指定 endings 时给 2 个默认 (好结局 / 普通结局)
+  const endings = (scenario.endings && scenario.endings.length > 0)
+    ? scenario.endings
+    : buildDefaultEndings();
+  const endingRouterLabel = p ? `${p}__ending_router` : 'ending_router';
+  // 如果 scenario 指定了 endings 或者 terminalExit.target 是 journey_recap, 用 router 代替直接 recap
+  const shouldUseEndingRouter = (scenario.endings && scenario.endings.length > 0);
+  const effectiveTerminalExit = opts.terminalExit && shouldUseEndingRouter
+    ? { buttonLabel: opts.terminalExit.buttonLabel, target: endingRouterLabel }
+    : opts.terminalExit;
+
   // 所有 scenes 写到一个文件里（用 label 区分），简化 routing
   const sceneFiles = new Map<string, string>();
   const lastSceneIdx = scenario.scenes.length - 1;
@@ -644,8 +656,8 @@ export function buildScenarioGame(
       const inScene = perSceneInSceneActions.get(s.id);
       if (inScene !== undefined) sceneOpts.inSceneActions = inScene;
       // 只给最后一个 scene 注入 terminal exit (其他 scene 即使没 exits 也不需要)
-      if (i === lastSceneIdx && opts.terminalExit) {
-        sceneOpts.terminalExit = opts.terminalExit;
+      if (i === lastSceneIdx && effectiveTerminalExit) {
+        sceneOpts.terminalExit = effectiveTerminalExit;
       }
       // V2 (death L1): 每场景注入"主路径走完时的状态" + 死亡跳转
       const endState = opts.perSceneEndState?.get(s.id);
@@ -661,9 +673,106 @@ export function buildScenarioGame(
   // V2 (death L1): 末尾追加 2 张 bad_end intro 卡 (死亡 / 心智崩溃)
   const badEndsTxt = hasDeathCheck ? buildBadEndSection(deadEndLabel, madEndLabel) : '';
 
-  sceneFiles.set('scenes', allScenesTxt + (badEndsTxt ? '\n\n' + badEndsTxt : ''));
+  // V2 (endings L2-L3): 末尾追加 ending router + 各 ending intro 卡
+  // 仅在 scenario 指定 endings 时启用 (默认 fallback 不打扰现有 journey_recap 流程)
+  const endingsTxt = shouldUseEndingRouter
+    ? buildEndingRouterSection(
+        endings,
+        endingRouterLabel,
+        opts.terminalExit?.target ?? 'journey_recap',
+        p,
+      )
+    : '';
+
+  sceneFiles.set('scenes', allScenesTxt
+    + (badEndsTxt ? '\n\n' + badEndsTxt : '')
+    + (endingsTxt ? '\n\n' + endingsTxt : ''));
 
   return { startTxt, sceneFiles };
+}
+
+/**
+ * V2 (endings L2-L3): 默认结局 (scenario 没指定 endings 时用).
+ * 2 个: 好结局 (HP/SAN 都 >= 50% 起始) / 普通结局 (fallback).
+ */
+function buildDefaultEndings(): EndingDef[] {
+  return [
+    {
+      id: 'good_end',
+      name: '好结局',
+      conditionExpr: 'currentHp*2>=maxHp && currentSanity*2>=maxSanity',
+      fontColor: 'rgba(220, 200, 130, 1)',
+      fontSize: 'large',
+      narrate: [
+        '你活着回来了。',
+        '身上的伤会愈合, 心里的震荡会消退。',
+        '只是有些夜里, 你还是会想起那阵风。',
+      ],
+    },
+    {
+      id: 'normal_end',
+      name: '普通结局',
+      fontColor: 'rgba(216, 201, 166, 1)',
+      fontSize: 'large',
+      narrate: [
+        '你撑过去了。',
+        '不算赢, 但也没输给那东西。',
+        '后续的日子里, 你会慢慢学会跟这段经历共处。',
+      ],
+    },
+  ];
+}
+
+/**
+ * V2 (endings L2-L3): 生成 ending router + 各 ending intro 卡的 WebGAL 脚本.
+ *
+ * 流程: 玩家点 "结束这段旅程" → jumpLabel:ending_router →
+ *   router 按顺序检查 conditionExpr, 第一个匹配的跳到对应 ending →
+ *   ending intro 卡显示 → jumpLabel:journey_recap
+ */
+function buildEndingRouterSection(
+  endings: EndingDef[],
+  routerLabel: string,
+  recapLabel: string,
+  prefix?: string,
+): string {
+  const lines: string[] = [
+    `;------------------- ending router -------------------`,
+    `label:${routerLabel};`,
+  ];
+
+  // 把有 conditionExpr 的 ending 排前面 (顺序匹配, 第一个命中就跳),
+  // 无 conditionExpr 的放最后做 fallback
+  const conditional = endings.filter((e) => e.conditionExpr && e.conditionExpr.trim().length > 0);
+  const fallback = endings.filter((e) => !e.conditionExpr || e.conditionExpr.trim().length === 0);
+  if (fallback.length === 0) {
+    // 没 fallback, 用 endings[0] 兜底 (避免 router 跳空)
+    fallback.push(endings[0]!);
+  }
+
+  for (const e of conditional) {
+    const lbl = prefix ? `${prefix}__ending_${e.id}` : `ending_${e.id}`;
+    lines.push(`jumpLabel:${lbl} -when=${e.conditionExpr};`);
+  }
+  // fallback (无条件跳第一个 fallback)
+  const fb = fallback[0]!;
+  lines.push(`jumpLabel:${prefix ? `${prefix}__ending_${fb.id}` : `ending_${fb.id}`};`);
+  lines.push('');
+
+  // 每个 ending 一个 intro 卡 + jumpLabel:journey_recap
+  for (const e of endings) {
+    const lbl = prefix ? `${prefix}__ending_${e.id}` : `ending_${e.id}`;
+    const color = e.fontColor ?? 'rgba(216, 201, 166, 1)';
+    const size = e.fontSize ?? 'large';
+    const introContent = e.narrate.map((n) => n.replace(/\|/g, '｜')).join('|');
+    lines.push(`;----- ending: ${e.name} -----`);
+    lines.push(`label:${lbl};`);
+    lines.push(`intro:${introContent} -animation=fadeIn -fontColor=${color} -fontSize=${size} -delayTime=2400;`);
+    lines.push(`jumpLabel:${recapLabel};`);
+    lines.push('');
+  }
+
+  return lines.join('\n');
 }
 
 /**
