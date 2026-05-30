@@ -94,8 +94,19 @@ export interface Scene {
   expectedChecks?: CheckDef[];
   /** 心智耗损触发点 */
   sanityTriggers?: SanityTrigger[];
-  /** 从这个场景能跳到哪些场景（白名单 —— LLM 不能擅自跳到不在这里的场景）*/
-  exits?: { toScene: string; condition: string }[];
+  /**
+   * 从这个场景能跳到哪些场景（白名单 —— LLM 不能擅自跳到不在这里的场景）.
+   *
+   * V2 (branching L2):
+   *   - requires: 这个 exit 只有 flags 满足时才显示给玩家. 例: `{ hasKey: true }` 只在拿到钥匙后才能"开锁"
+   *   - sets:     玩家走这个 exit 时设置 flag. 例: `{ choseToFight: true }` 让后续场景知道玩家选了硬刚
+   */
+  exits?: {
+    toScene: string;
+    condition: string;
+    requires?: Record<string, boolean | number | string>;
+    sets?: Record<string, boolean | number | string>;
+  }[];
   /** 进入此场景前必须满足的 flags（用于引擎校验）*/
   requiredFlags?: Record<string, boolean | number | string>;
   /** 此场景的 BGM / 背景图（资源 ID） */
@@ -147,6 +158,12 @@ export interface Scenario {
   scenes: Scene[];
   /** 所有 NPC */
   npcs: NpcDef[];
+  /**
+   * V2 (branching L2): 起始 flag 状态.
+   * 整本游戏开始时设到 WebGAL setVar, 后续场景的 exit.requires 用这些做条件.
+   * 例: `{ hasKey: false, choseToTrust: false, sawEvidence: 0 }`
+   */
+  initialFlags?: Record<string, boolean | number | string>;
   /** Scenario 文件的 schema version（未来兼容用）*/
   schemaVersion: 1;
 }

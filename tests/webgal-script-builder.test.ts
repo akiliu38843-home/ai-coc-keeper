@@ -162,6 +162,60 @@ describe('splitIntoPages', () => {
     expect(scenes).toContain('choose:完:journey_recap');
   });
 
+  it('V2 flag: exit.requires 渲染成 (cond)-> 前缀', () => {
+    const scene: Scene = {
+      id: 'scene_a',
+      name: 'A',
+      description: '...',
+      exits: [
+        { toScene: 'scene_b', condition: '走 B' },
+        { toScene: 'scene_c', condition: '开锁', requires: { hasKey: true } },
+        { toScene: 'scene_d', condition: '复合', requires: { sawEvidence: 2, isAngry: false } },
+      ],
+    };
+    const out = sceneToWebgalSection(scene);
+    expect(out).toContain('走 B:scene_b');
+    expect(out).toContain('(hasKey==true)->开锁:scene_c');
+    expect(out).toContain('(sawEvidence==2&&isAngry==false)->复合:scene_d');
+  });
+
+  it('V2 flag: exit.sets 在 transition 里 setVar', () => {
+    const scene: Scene = {
+      id: 'scene_a',
+      name: 'A',
+      description: '...',
+      exits: [
+        {
+          toScene: 'scene_b', condition: '走 B',
+          sets: { choseToTrust: true, evidenceCount: 1 },
+        },
+      ],
+    };
+    const out = sceneToWebgalSection(scene);
+    // exit 设了 sets, 应该生成 trans label + setVar
+    expect(out).toContain('label:trans_scene_a_0;');
+    expect(out).toContain('setVar:choseToTrust=true;');
+    expect(out).toContain('setVar:evidenceCount=1;');
+    expect(out).toContain('jumpLabel:scene_b;');
+  });
+
+  it('V2 flag: scenario.initialFlags 在 startTxt 顶部 setVar', () => {
+    const sc: Scenario = {
+      id: 'test',
+      title: '测试',
+      setting: '...',
+      startSceneId: 's1',
+      schemaVersion: 1,
+      npcs: [],
+      scenes: [{ id: 's1', name: 'A', description: 'A.' }],
+      initialFlags: { hasKey: false, evidenceCount: 0, route: 'investigation' },
+    };
+    const built = buildScenarioGame(sc);
+    expect(built.startTxt).toContain('setVar:hasKey=false;');
+    expect(built.startTxt).toContain('setVar:evidenceCount=0;');
+    expect(built.startTxt).toContain('setVar:route="investigation";');
+  });
+
   it('sceneToWebgalSection 自动 truncate 超长 exit condition', () => {
     const scene: Scene = {
       id: 'scene_test',

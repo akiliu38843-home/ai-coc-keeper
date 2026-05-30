@@ -90,23 +90,39 @@ export function splitIntoPages(text: string, maxLen: number = MAX_PAGE_LEN): str
     .split(/(?<=[。！？!?])(?=\s*\S)/)
     .map((s) => s.trim())
     .filter((s) => s.length > 0);
-  const pages: string[] = [];
+  const rawPages: string[] = [];
   for (const sent of sentences) {
-    if (sent.length <= maxLen) { pages.push(sent); continue; }
+    if (sent.length <= maxLen) { rawPages.push(sent); continue; }
     let remaining = sent;
     let progressed = true;
     while (progressed && remaining.length > maxLen) {
       const window = remaining.slice(0, maxLen);
-      const cutMatch = window.match(/^(.*[，、；,—])([^，、；,—]*)$/);
+      // 切点字符集: 逗号 / 顿号 / 分号 / 破折号 / **]** (badge 关闭符)
+      // 加 ] 让 [闪避 67/15 失败] [HP -3 → 8/12] 这种 badge 前缀能切出来
+      const cutMatch = window.match(/^(.*[，、；,—\]])([^，、；,—\]]*)$/);
       if (cutMatch && cutMatch[1] && cutMatch[1].length > 0) {
-        pages.push(cutMatch[1].trim());
+        rawPages.push(cutMatch[1].trim());
         remaining = (cutMatch[2] + remaining.slice(maxLen)).trim();
       } else {
         // ★ 没有可切点 — 不硬切, 让剩余整句作为单页输出, break.
         progressed = false;
       }
     }
-    if (remaining.length > 0) pages.push(remaining);
+    if (remaining.length > 0) rawPages.push(remaining);
+  }
+  // 后处理: 纯 badge 页 (`[xxx] [yyy]` 全是方括号无 narrate) 跟下一页合并,
+  // 否则玩家先看一页"全 badge", 再看一页 narrate, 体验割裂
+  const pages: string[] = [];
+  const PURE_BADGE = /^[\s]*(?:\[[^\]]+\][\s]*)+$/;
+  for (let i = 0; i < rawPages.length; i++) {
+    const cur = rawPages[i]!;
+    if (PURE_BADGE.test(cur) && i + 1 < rawPages.length) {
+      // 合并到下一页, 总长仍允许略超 maxLen (badge 算 "前缀装饰")
+      pages.push(cur + ' ' + rawPages[i + 1]);
+      i++; // 跳过被合并的下一页
+    } else {
+      pages.push(cur);
+    }
   }
   return pages;
 }
@@ -375,7 +391,10 @@ export function sceneToWebgalSection(
         ? pfx(transitionLabelName(scene.id, i), p)
         : pfx(e.toScene, p);
       const safeLabel = escapeForWebgal(truncateChoiceLabel(e.condition));
-      choiceParts.push(`${safeLabel}:${target}`);
+      // V2 (branching L2): 如果 exit 有 requires, 用 WebGAL choose 选项级条件 (cond)->text:label
+      // 例: exit.requires = { hasKey: true } → "(hasKey==true)->开锁:scene_x"
+      const cond = renderFlagRequires(e.requires);
+      choiceParts.push(`${cond}${safeLabel}:${target}`);
     });
   }
   // terminal scene 末尾追加 "结束" 按钮 → 跳到 recap/launcher (调用方决定 target).
@@ -397,19 +416,55 @@ export function sceneToWebgalSection(
   }
 
   // exit transition labels（跳到下个 scene）
-  if (scene.exits && opts.transitionActions) {
+  if (scene.exits) {
     for (const [i, exit] of scene.exits.entries()) {
-      const transActs = opts.transitionActions.get(i);
-      if (transActs && transActs.length > 0) {
+      const transActs = opts.transitionActions?.get(i);
+      const setsFlags = renderFlagSets(exit.sets);
+      // 只有 transition 或 sets 至少有一个时才需要 label (否则直接 choose 跳 toScene)
+      if ((transActs && transActs.length > 0) || setsFlags.length > 0) {
         lines.push('');
         lines.push(`label:${pfx(transitionLabelName(scene.id, i), p)};`);
-        lines.push(...transActs.flatMap((a) => actionToWebgalLines(a)));
+        // V2: 走这个 exit 时设的 flag, 在 transition narrate 之前 setVar
+        for (const setLine of setsFlags) lines.push(setLine);
+        if (transActs && transActs.length > 0) {
+          lines.push(...transActs.flatMap((a) => actionToWebgalLines(a)));
+        }
         lines.push(`jumpLabel:${pfx(exit.toScene, p)};`);
       }
     }
   }
 
   return lines.join('\n');
+}
+
+/**
+ * V2 (branching L2): 把 exit.requires 渲染成 WebGAL choose 的选项级条件前缀.
+ *   { hasKey: true, sawEvidence: 2 }  →  "(hasKey==true&&sawEvidence==2)->"
+ * 返回空串表示无条件.
+ *
+ * 参考 WebGAL choose 语法: `(showCond)[enableCond]->text:jump`
+ */
+function renderFlagRequires(requires?: Record<string, boolean | number | string>): string {
+  if (!requires || Object.keys(requires).length === 0) return '';
+  const parts = Object.entries(requires).map(([k, v]) => {
+    if (typeof v === 'boolean') return `${k}==${v ? 'true' : 'false'}`;
+    if (typeof v === 'number') return `${k}==${v}`;
+    return `${k}=="${v}"`;
+  });
+  return `(${parts.join('&&')})->`;
+}
+
+/**
+ * V2 (branching L2): 把 exit.sets 渲染成 setVar 指令组.
+ *   { hasKey: true, choseToFight: true }  →  ["setVar:hasKey=true;", "setVar:choseToFight=true;"]
+ */
+function renderFlagSets(sets?: Record<string, boolean | number | string>): string[] {
+  if (!sets || Object.keys(sets).length === 0) return [];
+  return Object.entries(sets).map(([k, v]) => {
+    if (typeof v === 'boolean') return `setVar:${k}=${v ? 'true' : 'false'};`;
+    if (typeof v === 'number') return `setVar:${k}=${v};`;
+    return `setVar:${k}="${v}";`;
+  });
 }
 
 function transitionLabelName(fromSceneId: string, exitIndex: number): string {
@@ -559,10 +614,13 @@ export function buildScenarioGame(
   const p = opts.labelPrefix;
   // start.txt：开场 intro → jumpLabel 到起点
   const introLines = buildIntroSection(scenario, opts.character);
+  // V2 (branching L2): 起始 flag 状态先 setVar, 后续场景的 exit.requires 用这些做条件判断
+  const initialFlagLines = renderFlagSets(scenario.initialFlags);
   const startTxt = [
     `;${scenario.title}`,
     `;${scenario.setting}`,
     `setVar:scenarioId="${scenario.id}";`,
+    ...initialFlagLines,
     ...introLines,
     `jumpLabel:${p ? `${p}__${scenario.startSceneId}` : scenario.startSceneId};`,
   ].join('\n');
