@@ -23,7 +23,7 @@ import { OpenAICompatibleProvider } from '../src/llm/openai-compatible.js';
 import { LlmAdapter, type LlmAction, type SuggestedAction } from '../src/llm/adapter.js';
 import { InMemoryNarrativeState } from '../src/engine/in-memory-narrative-state.js';
 import { recomputeDerivedStats } from '../src/types/character.js';
-import { rollCheck } from '../src/engine/skill-check.js';
+import { rollCheck, outcomeToZh, skillIdToZh } from '../src/engine/skill-check.js';
 import { rollSanityCheck } from '../src/engine/sanity.js';
 import { rollInsanity } from '../src/engine/insanity-tables.js';
 import { applyDamage } from '../src/engine/damage.js';
@@ -159,6 +159,10 @@ async function main(): Promise<void> {
   const perSceneInScene = new Map<string, InSceneAction[]>();
   // 回顾页用: 走过的 scene 名顺序
   const visitedSceneNames: string[] = [];
+  // V2 (death L1): 每场景结束时玩家状态, 给 builder 插 setVar + 死亡跳转
+  const perSceneEndState = new Map<string, {
+    currentHp: number; currentSanity: number; maxHp: number; maxSanity: number;
+  }>();
 
   // ★ 关键改造: 整本剧本共享 ONE narrative + ONE LlmAdapter,
   // 让后续 scene narrate 看得到前面 scene 的"假定主路径"选择历史.
@@ -248,6 +252,8 @@ async function main(): Promise<void> {
           expectedChecks: (scene.expectedChecks ?? []).map((c) => ({
             skill: c.skill, difficulty: c.difficulty, reason: c.reason,
           })),
+          // V1: 把原作段落带上, prompts.ts 里会触发"忠实改编"约束
+          ...(scene.originalText ? { originalText: scene.originalText } : {}),
         },
         character: char,
         narrative: ns,
@@ -293,7 +299,10 @@ async function main(): Promise<void> {
     try {
       const sceneContext = buildSceneContext({
         scenario: { id: scenario.id, title: scenario.title, setting: scenario.setting },
-        scene: { id: scene.id, name: scene.name, description: scene.description, hints: scene.hints ?? [] },
+        scene: {
+          id: scene.id, name: scene.name, description: scene.description, hints: scene.hints ?? [],
+          ...(scene.originalText ? { originalText: scene.originalText } : {}),
+        },
         character: char,
         narrative: ns,
       });
@@ -308,8 +317,8 @@ async function main(): Promise<void> {
           const target = skillTargetFromCharacter(char, a.check.skill);
           const result = rollCheck({ target, difficulty: a.check.difficulty }, rng);
           checkSucceeded = result.succeeded;
-          const skillName = char.skills.get(a.check.skill)?.name ?? a.check.skill;
-          skillBadge = `[${skillName} ${result.roll}/${result.effectiveTarget} ${result.outcome}]`;
+          const skillName = char.skills.get(a.check.skill)?.name ?? skillIdToZh(a.check.skill);
+          skillBadge = `[${skillName} ${result.roll}/${result.effectiveTarget} ${outcomeToZh(result.outcome)}]`;
           baseNarrate = result.succeeded ? a.successNarrate : a.failNarrate;
         } else {
           baseNarrate = a.resultNarrate;
@@ -378,6 +387,14 @@ async function main(): Promise<void> {
     if (scene.exits && scene.exits.length > 0) {
       sharedNarrative.logChoice(`exit_0`, scene.exits[0]!.condition);
     }
+
+    // V2 (death L1): 记录该 scene 走完后的玩家状态, 给 builder setVar 同步
+    perSceneEndState.set(scene.id, {
+      currentHp: char.currentHp,
+      currentSanity: char.currentSanity,
+      maxHp: char.maxHp,
+      maxSanity: char.maxSanity,
+    });
   }
 
   console.log(`\n🔨 构建 WebGAL game...`);
@@ -404,6 +421,8 @@ async function main(): Promise<void> {
   const built = buildScenarioGame(scenario, perSceneActions, perSceneTransitions, perSceneInScene, {
     character: char,
     terminalExit: { buttonLabel: '结束这段旅程', target: 'journey_recap' },
+    // V2 (death L1): builder 把每场景结束时的 HP/SAN setVar 写进 start.txt + 加 bad_end
+    perSceneEndState,
   });
 
   // 同时更新 config.txt 让 WebGAL 标题栏跟随 scenario.title

@@ -25,6 +25,77 @@
 import type { CheckResult, CheckOutcome, Difficulty } from '../types/rules.js';
 import type { Rng } from './rng.js';
 
+/**
+ * 把内部 CheckOutcome 英文枚举翻成跑团圈通用中文术语 (展示给玩家用).
+ * ⚠️ 任何往 narrate / badge / 玩家可见 UI 写 outcome 的代码, 必须过这一函数,
+ * 不许直接拼 outcome 英文字符串. 老板看见 "fumble" 一次了, 不能再有第二次.
+ */
+const OUTCOME_ZH: Record<CheckOutcome, string> = {
+  critical_success: '大成功',
+  extreme_success: '极难成功',
+  hard_success: '困难成功',
+  success: '成功',
+  failure: '失败',
+  fumble: '大失败',
+};
+export function outcomeToZh(outcome: CheckOutcome): string {
+  return OUTCOME_ZH[outcome] ?? outcome;
+}
+
+/**
+ * 内部 skill id (英文 snake_case) → 跑团圈通用中文名 兜底.
+ * 优先级: char.skills.get(id)?.name → SKILL_NAME_ZH[id] → 原 id.
+ * 任何展示 skill 名给玩家的代码必须过这层, 别让 "brawl" / "dodge" 流到 UI.
+ */
+const SKILL_NAME_ZH: Record<string, string> = {
+  brawl: '格斗',
+  dodge: '闪避',
+  spot_hidden: '侦查',
+  listen: '聆听',
+  library_use: '图书馆使用',
+  psychology: '心理学',
+  persuade: '说服',
+  fast_talk: '话术',
+  intimidate: '恐吓',
+  charm: '魅惑',
+  occult: '神秘学',
+  cthulhu_mythos: '克苏鲁神话',
+  locksmith: '锁匠',
+  first_aid: '急救',
+  medicine: '医学',
+  climb: '攀爬',
+  swim: '游泳',
+  jump: '跳跃',
+  throw: '投掷',
+  drive_auto: '驾驶 (汽车)',
+  language_own: '母语',
+  language_other: '其他语言',
+  track: '追踪',
+  sneak: '潜行',
+  stealth: '隐匿',
+  history: '历史',
+  archaeology: '考古学',
+  art_craft: '艺术与制作',
+  science: '科学',
+  navigate: '导航',
+  natural_world: '博物学',
+  mechanical_repair: '机械维修',
+  electrical_repair: '电气维修',
+  computer_use: '计算机使用',
+  accounting: '会计',
+  law: '法律',
+  appraise: '估价',
+  disguise: '乔装',
+  pilot: '驾驶 (船 / 飞行器)',
+  ride: '骑乘',
+  firearms_handgun: '射击 (手枪)',
+  firearms_rifle: '射击 (步枪)',
+  firearms_shotgun: '射击 (霰弹枪)',
+};
+export function skillIdToZh(id: string): string {
+  return SKILL_NAME_ZH[id] ?? id;
+}
+
 export interface RollCheckParams {
   target: number;
   difficulty?: Difficulty;

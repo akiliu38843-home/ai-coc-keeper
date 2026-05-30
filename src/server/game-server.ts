@@ -18,7 +18,7 @@ import { randomUUID } from 'node:crypto';
 import { OpenAICompatibleProvider } from '../llm/openai-compatible.js';
 import { LlmAdapter, type LlmAction } from '../llm/adapter.js';
 import { InMemoryNarrativeState } from '../engine/in-memory-narrative-state.js';
-import { rollCheck } from '../engine/skill-check.js';
+import { rollCheck, outcomeToZh, skillIdToZh } from '../engine/skill-check.js';
 import { rollSanityCheck } from '../engine/sanity.js';
 import { rollInsanity } from '../engine/insanity-tables.js';
 import { applyDamage } from '../engine/damage.js';
@@ -251,8 +251,8 @@ async function apiResolveAction(sessionId: string, actionIdx: number): Promise<A
     const target = skillTargetFromChar(session.character, a.check.skill);
     const r = rollCheck({ target, difficulty: a.check.difficulty }, session.rng);
     checkSucceeded = r.succeeded;
-    const skillName = session.character.skills.get(a.check.skill)?.name ?? a.check.skill;
-    badges.push(`[${skillName} ${r.roll}/${r.effectiveTarget} ${r.outcome}]`);
+    const skillName = session.character.skills.get(a.check.skill)?.name ?? skillIdToZh(a.check.skill);
+    badges.push(`[${skillName} ${r.roll}/${r.effectiveTarget} ${outcomeToZh(r.outcome)}]`);
     narrate = r.succeeded ? a.successNarrate : a.failNarrate;
   } else {
     narrate = a.resultNarrate;

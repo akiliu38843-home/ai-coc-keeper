@@ -1,0 +1,683 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>ai-coc-keeper · 产品调性决策器</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --ink:        #2a241a;
+    --ink-dim:    #6b5d44;
+    --ink-faint:  #a89578;
+    --paper:      #f7f1e1;
+    --paper-2:    #efe6cf;
+    --paper-3:    #e8dcc2;
+    --amber:      #b89559;
+    --amber-bri:  #d6b076;
+    --blood:      #8b2c1f;
+    --blood-bri:  #c44537;
+    --border:     #d6c8a6;
+    --good:       #4a6b3d;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Noto Serif SC", "Songti SC", "Source Han Serif", "Hiragino Mincho ProN", serif;
+    line-height: 1.7;
+    padding: 32px 20px 80px;
+  }
+  main { max-width: 1280px; margin: 0 auto; }
+  header.top {
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 18px;
+    margin-bottom: 28px;
+  }
+  h1 { font-size: 28px; margin: 0 0 6px; letter-spacing: 0.02em; }
+  .lede { color: var(--ink-dim); font-size: 15px; max-width: 880px; }
+
+  /* ── 现状卡 ── */
+  .status-card {
+    background: linear-gradient(180deg, var(--paper-2) 0%, var(--paper-3) 100%);
+    border-left: 4px solid var(--blood);
+    padding: 18px 24px;
+    margin-bottom: 32px;
+    border-radius: 2px;
+  }
+  .status-card h3 {
+    margin: 0 0 8px;
+    color: var(--blood);
+    font-size: 15px;
+    letter-spacing: 0.15em;
+  }
+  .status-card p { margin: 0; color: var(--ink); }
+
+  /* ── 主体: 左 dimensions, 右 result ── */
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+  }
+  @media (max-width: 960px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+
+  /* ── 左 列 · dimensions ── */
+  .dim-panel { display: flex; flex-direction: column; gap: 16px; }
+  h2.section {
+    font-size: 16px;
+    color: var(--blood);
+    letter-spacing: 0.18em;
+    margin: 0 0 4px;
+    border-left: 4px solid var(--amber);
+    padding-left: 12px;
+    text-transform: uppercase;
+  }
+  .dim {
+    background: var(--paper-2);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 14px 18px;
+  }
+  .dim-title {
+    font-size: 14px;
+    color: var(--amber);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin: 0 0 6px;
+  }
+  .dim-question {
+    font-size: 15px;
+    color: var(--ink);
+    margin: 0 0 12px;
+  }
+  .dim-options {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .dim-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 10px;
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 14px;
+  }
+  .dim-option:hover {
+    background: var(--paper-3);
+    border-color: var(--amber);
+  }
+  .dim-option.selected {
+    background: var(--paper-3);
+    border-color: var(--amber);
+    box-shadow: inset 0 0 0 1px var(--amber);
+  }
+  .dim-option .badge {
+    display: inline-block;
+    min-width: 22px;
+    height: 22px;
+    line-height: 22px;
+    text-align: center;
+    background: var(--paper-3);
+    color: var(--ink-dim);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    font-size: 11px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .dim-option.selected .badge {
+    background: var(--amber);
+    color: #fff;
+    border-color: var(--amber);
+  }
+  .dim-option .text { flex: 1; }
+  .dim-option .label { color: var(--ink); display: block; margin-bottom: 2px; }
+  .dim-option .hint { color: var(--ink-dim); font-size: 12px; display: block; }
+
+  /* ── presets ── */
+  .presets {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  @media (max-width: 700px) {
+    .presets { grid-template-columns: 1fr; }
+  }
+  .preset-btn {
+    background: var(--paper);
+    border: 1px solid var(--amber);
+    color: var(--blood);
+    padding: 10px 14px;
+    border-radius: 2px;
+    font-family: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s ease;
+  }
+  .preset-btn:hover {
+    background: var(--amber);
+    color: #fff;
+  }
+  .preset-btn .title { display: block; font-weight: 600; margin-bottom: 2px; }
+  .preset-btn .sub { display: block; font-size: 11px; opacity: 0.8; }
+
+  /* ── 右列 · 结果面板 ── */
+  .result {
+    background: var(--paper-2);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 24px 28px;
+    position: sticky;
+    top: 20px;
+    height: fit-content;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.05);
+  }
+  .result-positioning {
+    background: var(--paper);
+    border-left: 4px solid var(--amber);
+    padding: 14px 18px;
+    margin-bottom: 18px;
+    border-radius: 2px;
+  }
+  .result-positioning h3 {
+    margin: 0 0 6px;
+    color: var(--blood);
+    font-size: 13px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+  .result-positioning .name {
+    font-size: 20px;
+    color: var(--ink);
+    margin: 0 0 4px;
+  }
+  .result-positioning .one-liner {
+    margin: 0;
+    color: var(--ink-dim);
+    font-size: 14px;
+    font-style: italic;
+  }
+
+  .result-section { margin: 18px 0; }
+  .result-section h4 {
+    margin: 0 0 8px;
+    font-size: 12px;
+    color: var(--blood);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    padding-bottom: 4px;
+    border-bottom: 1px dashed var(--border);
+  }
+  .result-section ul {
+    margin: 0;
+    padding-left: 22px;
+    font-size: 14px;
+  }
+  .result-section li { margin: 4px 0; }
+  .player-quote {
+    background: var(--paper);
+    border-left: 3px solid var(--amber);
+    padding: 10px 14px;
+    margin: 0;
+    color: var(--ink-dim);
+    font-style: italic;
+    font-size: 14px;
+  }
+
+  .effort-bar {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--paper);
+    padding: 12px 16px;
+    border-radius: 2px;
+    border: 1px solid var(--border);
+  }
+  .effort-label { color: var(--ink-dim); font-size: 13px; min-width: 60px; }
+  .effort-value {
+    color: var(--ink);
+    font-size: 18px;
+    font-weight: 600;
+    flex: 1;
+  }
+  .effort-tier {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 10px;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+  }
+  .tier-low    { background: #d4e2cf; color: var(--good); border: 1px solid #93b384; }
+  .tier-medium { background: #f0e3c0; color: #856a1f; border: 1px solid #c8aa5e; }
+  .tier-high   { background: #efd3cd; color: var(--blood); border: 1px solid #d09a8e; }
+
+  .task-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .task-list li {
+    padding: 8px 12px;
+    margin: 4px 0;
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--amber);
+    border-radius: 2px;
+    font-size: 14px;
+  }
+  .task-list .L { color: var(--amber); font-weight: 600; margin-right: 8px; }
+  .task-list .why {
+    color: var(--ink-dim);
+    font-size: 12px;
+    display: block;
+    margin-top: 3px;
+  }
+  .task-list .skip {
+    color: var(--ink-faint);
+    text-decoration: line-through;
+    opacity: 0.5;
+  }
+
+  .similar-products {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .similar-products span {
+    background: var(--paper-3);
+    border: 1px solid var(--border);
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    color: var(--ink-dim);
+  }
+
+  .risk-box {
+    background: #fdebd0;
+    border: 1px solid #f0c987;
+    border-left: 4px solid var(--blood-bri);
+    padding: 10px 14px;
+    color: var(--ink);
+    font-size: 13px;
+  }
+  .risk-box.empty {
+    background: #d4e2cf;
+    border-color: #93b384;
+    border-left-color: var(--good);
+    color: var(--good);
+  }
+
+  footer {
+    margin-top: 40px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+    color: var(--ink-dim);
+    font-size: 13px;
+    text-align: center;
+  }
+
+  .toggle-mini {
+    display: inline-block;
+    padding: 2px 6px;
+    background: var(--amber);
+    color: #fff;
+    border-radius: 8px;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    margin-left: 4px;
+  }
+</style>
+</head>
+<body>
+<main>
+
+<header class="top">
+  <h1>ai-coc-keeper · 产品调性决策器</h1>
+  <p class="lede">
+    挪 5 个开关, 实时看你想做的是什么产品 / 玩家觉得在干啥 / 工程要改多少. 拍板了告诉 AI 开干.
+  </p>
+</header>
+
+<div class="status-card">
+  <h3>现状 · 默认全 L0 · "AI 写的克苏鲁短文播放器"</h3>
+  <p>当前选项装饰, 数值装饰, 没死亡判定, 没分支, 没多结局, 玩家也看不到剧情主干. 这是测试用配置, 不是终态.</p>
+</div>
+
+<h2 class="section">🎯 快速预设 (一键填好下面 5 个维度)</h2>
+<div class="presets">
+  <button class="preset-btn" data-preset="video">
+    <span class="title">📹 录视频用</span>
+    <span class="sub">不改, 现状就行</span>
+  </button>
+  <button class="preset-btn" data-preset="kp">
+    <span class="title">📋 KP 摸鱼工具</span>
+    <span class="sub">玩家能死 + 知道目标</span>
+  </button>
+  <button class="preset-btn" data-preset="trpg">
+    <span class="title">🎲 真跑团本可玩平台</span>
+    <span class="sub">真分支 + 多结局</span>
+  </button>
+</div>
+
+<div class="layout">
+
+<!-- 左: 5 维度 -->
+<div class="dim-panel">
+
+  <h2 class="section">⚙️ 5 个调性维度</h2>
+
+  <!-- D1: 死亡判定 -->
+  <div class="dim" data-dim="death">
+    <div class="dim-title">维度 1 · 数值能不能让你输</div>
+    <div class="dim-question">玩家 HP 跌到 0 / 心智度跌到 0 时, 会发生什么?</div>
+    <div class="dim-options">
+      <label class="dim-option" data-val="0"><span class="badge">L0</span><div class="text"><span class="label">不会死</span><span class="hint">数值是装饰, 跌到 0 也继续走完所有场景 · 现状</span></div></label>
+      <label class="dim-option" data-val="1"><span class="badge">L1</span><div class="text"><span class="label">强制 bad end</span><span class="hint">跌到 0 立刻跳"你死了/疯了"结局, 不能继续 · 推荐</span></div></label>
+      <label class="dim-option" data-val="2"><span class="badge">L2</span><div class="text"><span class="label">渐进恐怖</span><span class="hint">不仅 0 触发, 数值越低场景里的恐怖事件越多 (灯灭/失声/视野缩小)</span></div></label>
+    </div>
+  </div>
+
+  <!-- D2: 选择分支 -->
+  <div class="dim" data-dim="branching">
+    <div class="dim-title">维度 2 · 玩家选 A 还是选 B 有意义吗</div>
+    <div class="dim-question">点不同选项, 走到的下一场景一不一样?</div>
+    <div class="dim-options">
+      <label class="dim-option" data-val="0"><span class="badge">L0</span><div class="text"><span class="label">线性</span><span class="hint">每场景只有 1 个真出口, 4 个动作按钮回 loop, 玩家选啥都走同一条路 · 现状</span></div></label>
+      <label class="dim-option" data-val="1"><span class="badge">L1</span><div class="text"><span class="label">真分叉</span><span class="hint">每场景 2-3 个出口, 选 A 看完全不同的 scene 3, 选 B 看 scene 3', 第二轮重玩有意义</span></div></label>
+      <label class="dim-option" data-val="2"><span class="badge">L2</span><div class="text"><span class="label">flag 远程影响</span><span class="hint">scene 1 撒了谎 → scene 5 那 NPC 不信你, 关键剧情走不通. 选择影响整条线</span></div></label>
+    </div>
+  </div>
+
+  <!-- D3: 结局数 -->
+  <div class="dim" data-dim="endings">
+    <div class="dim-title">维度 3 · 几种结局</div>
+    <div class="dim-question">玩家走完一本会看到几个不同结尾?</div>
+    <div class="dim-options">
+      <label class="dim-option" data-val="0"><span class="badge">L0</span><div class="text"><span class="label">1 个</span><span class="hint">单结局, 走到底就是它, 玩家没二轮动力 · 现状</span></div></label>
+      <label class="dim-option" data-val="1"><span class="badge">L1</span><div class="text"><span class="label">2 个 (好 / 坏)</span><span class="hint">数值 + 关键选择决定, 至少有"活着出来"和"死/疯"两档</span></div></label>
+      <label class="dim-option" data-val="2"><span class="badge">L2</span><div class="text"><span class="label">3 个 (好 / 中 / 坏)</span><span class="hint">COC 标准 3 结局, 像琥珀の牢原作的 "逃出 / 死亡 / 同化"</span></div></label>
+      <label class="dim-option" data-val="3"><span class="badge">L3</span><div class="text"><span class="label">4+ 个 (含 secret/true)</span><span class="hint">玩家要试好几轮才能凑齐, 重玩价值高</span></div></label>
+    </div>
+  </div>
+
+  <!-- D4: 主干透明度 -->
+  <div class="dim" data-dim="story">
+    <div class="dim-title">维度 4 · 玩家知不知道自己在干嘛</div>
+    <div class="dim-question">"我现在的目标是什么" 玩家能不能查到?</div>
+    <div class="dim-options">
+      <label class="dim-option" data-val="0"><span class="badge">L0</span><div class="text"><span class="label">完全摸黑</span><span class="hint">主干只给 LLM 看, 玩家跟着场景走, 沉浸但容易迷茫 · 现状</span></div></label>
+      <label class="dim-option" data-val="1"><span class="badge">L1</span><div class="text"><span class="label">入场说一次</span><span class="hint">游戏开场告诉玩家"你是谁, 你在哪, 你要干嘛", 后面不再提</span></div></label>
+      <label class="dim-option" data-val="2"><span class="badge">L2</span><div class="text"><span class="label">永久任务追踪</span><span class="hint">加个 📋 主线 按钮, 玩家随时能查"我现在的目标 + 已知线索"</span></div></label>
+      <label class="dim-option" data-val="3"><span class="badge">L3</span><div class="text"><span class="label">完全透明</span><span class="hint">玩家能看 authorNotes / 整本剧情概要, 像看攻略</span></div></label>
+    </div>
+  </div>
+
+  <!-- D5: 剧本来源 -->
+  <div class="dim" data-dim="source">
+    <div class="dim-title">维度 5 · 剧本怎么来</div>
+    <div class="dim-question">玩家玩的本子内容是谁写的?</div>
+    <div class="dim-options">
+      <label class="dim-option" data-val="0"><span class="badge">L0</span><div class="text"><span class="label">AI 自由生成</span><span class="hint">没原作, AI 用克苏鲁框架瞎写. 量大, 但跑团圈一看就知道是 AI 编</span></div></label>
+      <label class="dim-option" data-val="1"><span class="badge">L1</span><div class="text"><span class="label">AI 用原作 seed 发挥</span><span class="hint">parser 摘要 + AI 自由编 · 我们之前 V0 是这条</span></div></label>
+      <label class="dim-option" data-val="2"><span class="badge">L2</span><div class="text"><span class="label">AI 忠实改编原作</span><span class="hint">parser 保留完整原文段 + AI 改写格式 · 我们当前 V1 是这条</span></div></label>
+      <label class="dim-option" data-val="3"><span class="badge">L3</span><div class="text"><span class="label">作者手写 + AI 渲染</span><span class="hint">作者自己写 scenario JSON, AI 只负责生成 narrate/选项. 最高质量, 但慢</span></div></label>
+    </div>
+  </div>
+
+</div>
+
+<!-- 右: 实时结果 -->
+<div class="result">
+  <div class="result-positioning">
+    <h3>Your Pick · 你选的产品是</h3>
+    <p class="name" id="positioning-name">—</p>
+    <p class="one-liner" id="positioning-oneliner">—</p>
+  </div>
+
+  <div class="result-section">
+    <h4>玩家会觉得自己在干啥</h4>
+    <p class="player-quote" id="player-quote">—</p>
+  </div>
+
+  <div class="result-section">
+    <h4>工程投入估算</h4>
+    <div class="effort-bar">
+      <span class="effort-label">总耗时</span>
+      <span class="effort-value" id="effort-value">—</span>
+      <span class="effort-tier" id="effort-tier">—</span>
+    </div>
+  </div>
+
+  <div class="result-section">
+    <h4>要做的具体工程</h4>
+    <ul class="task-list" id="task-list"><li>—</li></ul>
+  </div>
+
+  <div class="result-section">
+    <h4>风险 / 限制</h4>
+    <div class="risk-box" id="risk-box">—</div>
+  </div>
+
+  <div class="result-section">
+    <h4>类似的成熟产品 (作参考)</h4>
+    <div class="similar-products" id="similar-products"></div>
+  </div>
+</div>
+
+</div>
+
+<footer>
+  挪开关, 拍板了告诉我 (Claude) — 我按你选的组合开干. 中间任何概念你想深究, 直接问.
+</footer>
+
+</main>
+
+<script>
+// ─── State ────────────────────────────────────────────
+const state = { death: 0, branching: 0, endings: 0, story: 0, source: 2 };
+
+// ─── Presets ─────────────────────────────────────────
+const PRESETS = {
+  video: { death: 0, branching: 0, endings: 0, story: 0, source: 2 },     // 现状
+  kp:    { death: 1, branching: 0, endings: 1, story: 1, source: 2 },     // L1 死亡 + 入场 + 2 结局
+  trpg:  { death: 1, branching: 1, endings: 2, story: 2, source: 2 },     // 真跑团
+};
+
+// ─── 工程投入估算 (单位: 小时) ────────────────────────
+// 每个维度从默认 L0 升一级要多少时间
+const EFFORT = {
+  death:     [0, 3, 8],            // L0 默认, L1 = +3h, L2 = +8h
+  branching: [0, 16, 40],          // L0, L1 = +2 天, L2 = +1 周
+  endings:   [0, 4, 8, 16],        // L0, L1 = +0.5 天, L2 = +1 天, L3 = +2 天
+  story:     [0, 1, 4, 6],         // L0, L1 = +1h (入场页), L2 = +0.5 天, L3 = +1 天
+  source:    [-8, -2, 0, 16],      // L0 比 L2 简单 8h, L1 比 L2 简单 2h, L2 = 现状, L3 需开放作者编辑器
+};
+
+const TASKS = {
+  death: [
+    null,
+    { L: 'L1', tag: '死亡判定', task: 'builder 在每场景开头插条件: HP≤0 → 跳 bad_end_scene_death, SAN≤0 → 跳 bad_end_scene_madness. 各写 1 张全屏 intro 卡', why: '玩家有真风险, 不再无敌走完' },
+    { L: 'L2', tag: '渐进恐怖', task: '维度 1 之上加: HP < maxHp/3 触发"身体虚弱"narrate 修饰, SAN < maxSan/3 触发"出现幻觉"narrate 修饰 (gen-time 写入). 视野/音效 CSS 联动可选', why: '玩家感觉数值真影响体验, 不是冷冰冰条' },
+  ],
+  branching: [
+    null,
+    { L: 'L1', tag: '真分叉', task: 'parser 支持原作多分支识别 (改 prompt + 加 mandatoryEvents 类型), gen:ai-game 按多 exit 串行生成多条路径, builder 处理多 exit 路由', why: '玩家选 A 选 B 真有意义, 想第二轮重玩' },
+    { L: 'L2', tag: 'flag 远程影响', task: '维度 1 之上加: scenario JSON 支持 conditional exits (exit.requires: flag), gen-time 每场景写 flag 设置, builder 在 choose 渲染时按 flag 过滤可见 exit', why: '玩家感觉"这个本可以反复玩, 每条线不一样"' },
+  ],
+  endings: [
+    null,
+    { L: 'L1', tag: '2 结局', task: '加 2 个 ending scene (good_end / bad_end), 最终 scene 按 HP/SAN/key flag 决定跳哪个', why: '玩家有目标 (活着出来)' },
+    { L: 'L2', tag: '3 结局', task: '加 3 个 ending scene (good/middle/bad), 路由逻辑同上但多一档', why: 'COC 标准 (像琥珀の牢 原作 3 结局)' },
+    { L: 'L3', tag: '4+ 结局', task: '4 个或更多 ending, 含 secret/true ending 需特殊 flag 组合解锁. parser 要能识别原作的隐藏结局', why: '玩家有反复试的动力' },
+  ],
+  story: [
+    null,
+    { L: 'L1', tag: '入场展示', task: '游戏开场加一页 narrate: "你是谁, 你在哪, 大致要干嘛" (从 scenario.setting 提炼)', why: '玩家不再 1 秒进游戏后迷茫' },
+    { L: 'L2', tag: '任务追踪', task: '加 📋 主线 浮动按钮 (同角色卡套路, 注入 JS+CSS). 内容: 当前目标 + 已知线索. 每场景结束自动更新', why: '玩家随时知道下一步该干嘛' },
+    { L: 'L3', tag: '完全透明', task: '主线按钮里直接放 authorNotes / 关系图. 跟攻略书一样', why: '"剧本提供给 KP 学习"模式, 不是给玩家沉浸的' },
+  ],
+  source: [
+    { L: '退', tag: 'AI 自由生成', task: '删除 parser, 改成"prompt = 主题 + 长度", AI 直接吐 scenario JSON. 没原作锚点, 跑团圈一眼识破', why: '量大但质量不可控' },
+    { L: '退', tag: 'AI 用原作 seed', task: 'parser 只摘要不带 originalText (V0 路径). gen 时 AI 自由发挥, 内容跟原作脱节', why: '主干会偏离原作' },
+    { L: '当前', tag: 'AI 忠实改编', task: '保持现状 (V1): parser 2-pass 抽 originalText, gen 时 LLM 看原作改编', why: '主干贴原作, 不丢精髓' },
+    { L: 'L3', tag: '作者手写 + AI 渲染', task: '开放 scenario JSON 编辑界面, 作者按 schema 手写场景结构, AI 只负责 narrate / 行动建议生成. parser 退化为可选辅助', why: '最高质量但需要懂 schema 的作者' },
+  ],
+};
+
+// 产品定位映射
+function getPositioning(s) {
+  const d=s.death, b=s.branching, e=s.endings, st=s.story, src=s.source;
+  // 决策树
+  if (d===0 && b===0 && e===0) {
+    return {
+      name: '📹 AI 克苏鲁短文播放器',
+      oneLine: '玩家点一下看一段, 状态是装饰, 选项是装饰. 给你录视频 / 静态展示 / 老板演示用',
+      quote: '"看了一段 AI 写的克苏鲁故事, 挺有氛围, 像有声小说"',
+      similar: ['静态 galgame demo', 'AI Dungeon (早期 GPT-2 时代)', 'TRPG 录像 replay 站'],
+      risk: null,
+    };
+  }
+  if (d>=1 && b===0 && e<=1) {
+    return {
+      name: '📋 KP 单人本预玩工具',
+      oneLine: 'KP 拿来摸鱼 / 预跑剧本看节奏 / 玩家想自己跑一遍熟悉本子. 玩家能死, 知道目标, 但不分叉',
+      quote: '"摸鱼跑了一本琥珀の牢, 死了两次, 看得出大致剧情但选啥结果都一样"',
+      similar: ['Foundry VTT 单人模式', '锅老师线性跑团 demo', 'CYOA 简化版'],
+      risk: '玩家二轮重玩动力低 (走法一样)',
+    };
+  }
+  if (b>=1 && e>=2) {
+    return {
+      name: '🎲 AI 跑团本可玩平台',
+      oneLine: '玩家真玩 TRPG. 选 A 还是 B 真有差, 多结局, 死亡 / 疯掉是真后果. 想做的产品在这',
+      quote: '"玩了一本琥珀の牢, 第一次走了 bad end 被吃了, 想再来一次看好结局"',
+      similar: ['Choice of Games 系列', '80 Days', 'Sorcery!', 'Disco Elysium (轻量版)'],
+      risk: b>=2 ? null : '分支 L1 不带 flag 影响 → 玩家第二轮发现"选项数不多, 重玩价值打折"',
+    };
+  }
+  if (b===0 && e>=2) {
+    return {
+      name: '⚠️ 混合状态 · 有多结局但线性',
+      oneLine: '玩家看到 3 个结局但不知道为啥到的, 因为选项不真分叉. 这个组合不太自然',
+      quote: '"3 个结局, 但好像跟我选的没关系? 是数值决定的吗"',
+      similar: ['少见, 通常会失败上线'],
+      risk: '设计上自相矛盾: 既然多结局, 为何选项不分叉? 建议升 b 到 L1+',
+    };
+  }
+  return {
+    name: '🔧 自定义产品',
+    oneLine: '组合非典型, 仔细看下面的工程清单确认要做的事',
+    quote: '"组合方向有点抽象, 但能玩"',
+    similar: [],
+    risk: null,
+  };
+}
+
+function getTotalEffort(s) {
+  let h = 0;
+  h += EFFORT.death[s.death];
+  h += EFFORT.branching[s.branching];
+  h += EFFORT.endings[s.endings];
+  h += EFFORT.story[s.story];
+  h += EFFORT.source[s.source];
+  return Math.max(0, h);
+}
+
+function fmtEffort(hours) {
+  if (hours === 0) return { value: '0 小时 (现状)', tier: 'low', tierText: '不动' };
+  if (hours <= 8) return { value: hours + ' 小时', tier: 'low', tierText: '半天到 1 天' };
+  if (hours <= 24) return { value: hours + ' 小时 (' + Math.ceil(hours/8) + ' 天)', tier: 'medium', tierText: '1-3 天' };
+  if (hours <= 56) return { value: hours + ' 小时 (' + Math.ceil(hours/8) + ' 天)', tier: 'medium', tierText: '1 周' };
+  return { value: hours + ' 小时 (' + Math.ceil(hours/8) + ' 天)', tier: 'high', tierText: '2 周+' };
+}
+
+function getTaskList(s) {
+  const tasks = [];
+  if (s.death >= 1) tasks.push(TASKS.death[s.death]);
+  if (s.branching >= 1) tasks.push(TASKS.branching[s.branching]);
+  if (s.endings >= 1) tasks.push(TASKS.endings[s.endings]);
+  if (s.story >= 1) tasks.push(TASKS.story[s.story]);
+  if (s.source !== 2) tasks.push(TASKS.source[s.source]);
+  return tasks;
+}
+
+// ─── 渲染 ─────────────────────────────────────────────
+function render() {
+  // 高亮选中的选项
+  document.querySelectorAll('.dim').forEach((dim) => {
+    const name = dim.dataset.dim;
+    const val = state[name];
+    dim.querySelectorAll('.dim-option').forEach((opt) => {
+      opt.classList.toggle('selected', +opt.dataset.val === val);
+    });
+  });
+
+  const pos = getPositioning(state);
+  document.getElementById('positioning-name').textContent = pos.name;
+  document.getElementById('positioning-oneliner').textContent = pos.oneLine;
+  document.getElementById('player-quote').textContent = pos.quote;
+
+  const hours = getTotalEffort(state);
+  const f = fmtEffort(hours);
+  document.getElementById('effort-value').textContent = f.value;
+  const tierEl = document.getElementById('effort-tier');
+  tierEl.textContent = f.tierText;
+  tierEl.className = 'effort-tier tier-' + f.tier;
+
+  const tasks = getTaskList(state);
+  const tl = document.getElementById('task-list');
+  if (tasks.length === 0) {
+    tl.innerHTML = '<li><em style="color: var(--ink-faint)">无需新工程, 现状即可发布给老板看</em></li>';
+  } else {
+    tl.innerHTML = tasks.map((t) => `
+      <li>
+        <span class="L">${t.L}</span><strong>${t.tag}</strong> · ${t.task}
+        <span class="why">为啥要做: ${t.why}</span>
+      </li>
+    `).join('');
+  }
+
+  const risk = pos.risk;
+  const riskEl = document.getElementById('risk-box');
+  if (risk) {
+    riskEl.className = 'risk-box';
+    riskEl.textContent = '⚠️ ' + risk;
+  } else {
+    riskEl.className = 'risk-box empty';
+    riskEl.textContent = '✓ 没看到明显风险';
+  }
+
+  const sp = document.getElementById('similar-products');
+  sp.innerHTML = pos.similar.length === 0
+    ? '<span style="color:var(--ink-faint)">无典型参考</span>'
+    : pos.similar.map((s) => `<span>${s}</span>`).join('');
+}
+
+// ─── Events ─────────────────────────────────────────
+document.querySelectorAll('.dim-option').forEach((opt) => {
+  opt.addEventListener('click', (e) => {
+    const dim = opt.closest('.dim').dataset.dim;
+    state[dim] = +opt.dataset.val;
+    render();
+  });
+});
+document.querySelectorAll('.preset-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    Object.assign(state, PRESETS[btn.dataset.preset]);
+    render();
+  });
+});
+
+render();
+</script>
+</body>
+</html>

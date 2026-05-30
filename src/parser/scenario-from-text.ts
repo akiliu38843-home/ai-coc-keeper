@@ -90,6 +90,14 @@ export interface ParseScenarioOptions {
   temperature?: number;
   /** 截断输入到前 N 字符（gateway timeout 兜底）。默认不截断 */
   truncateInputChars?: number;
+  /**
+   * V1 模式: 不压缩, 每个场景挂上完整原文段落 (originalText).
+   * gen:ai-game 在 enterScene 时把 originalText 喂给 LLM 做"忠实改编",
+   * 玩家看到的 narrate 贴近原作具体情节, 不是 AI 自由脑补.
+   *
+   * V0 模式 (默认): 只输出 3-6 场景 + 摘要 description, AI gen 时自由发挥.
+   */
+  v1Mode?: boolean;
 }
 
 export interface ParseScenarioResult {
@@ -120,9 +128,30 @@ export async function parseScenarioFromText(
   const truncNote = opts.truncateInputChars && text.length > opts.truncateInputChars
     ? `\n\n【注意】原文有 ${text.length} 字符，本次只给你前 ${opts.truncateInputChars} 字符（V0 演示限制）。请只解析你看到的部分，剩余场景留空但 startSceneId 要指向你确实创建的场景。`
     : '';
-  const userPrompt = `请把下面这份剧本原文解析成 Scenario JSON。${hint}${truncNote}
+  const userPrompt = opts.v1Mode
+    ? `请把下面这份剧本原文**切分**成 Scenario JSON. ${hint}${truncNote}
 
-【重要约束】V0 限输出规模：
+【V1 模式 · 切分而不压缩】
+
+1. **场景数**: 按原文自然章节切, 5-12 个场景. 不要少于 5 个 (避免压缩过狠), 不要超过 12 个 (避免过碎)
+2. **每个场景必须包含 originalText 字段**: 该场景对应的原文**完整段落, 原样从原文里抠出来**, 不要重写, 不要总结, 不要省略. 这是 V1 的核心: gen 时 LLM 看着原文做改编, 不让它自由脑补.
+3. **description 字段**: 仍然写 2-4 句**摘要** (给 LLM 当 hint 用, 跟原文呼应但不重复 originalText)
+4. **mandatoryEvents 字段** (新, 重要): 原文里**明确写了必然发生**的战斗 / 检定 / 心智冲击, 列在这里. 例如:
+   - 原文 "敌人冲过来, 调查员必须做战斗检定" → mandatoryEvents: [{ kind: 'combat', skill: 'brawl', narrate: '...', damageOnFailure: '1d4' }]
+   - 原文 "看到尸体, SAN 检定" → mandatoryEvents: [{ kind: 'sanity', trigger: '看到尸体', lossOnSuccess: 0, lossOnFailureRoll: '1d6' }]
+   - 不放进 expectedChecks (那是可选), 放进 mandatoryEvents (强制)
+5. expectedChecks 仍写, 是"玩家**可能选**的探索动作", 跟 mandatoryEvents 互补
+6. **不允许偏离原文**: 不要发明原文没有的角色 / 场景 / 桥段. 原文有什么写什么.
+
+原文:
+"""
+${trimmed}
+"""
+
+输出严格 JSON, 不带 markdown wrapper.`
+    : `请把下面这份剧本原文解析成 Scenario JSON。${hint}${truncNote}
+
+【V0 模式 · 重要约束】限输出规模：
 - 只创建 **3-6 个最重要的场景**（开头、关键转折、结尾各 1 个；中间挑重要的）
 - 每个场景的 description 写 2-4 句即可，不要逐字翻译原文
 - 不要写超过 6 个 expectedChecks
@@ -143,8 +172,8 @@ ${trimmed}
     {
       temperature: opts.temperature ?? 0.3,
       jsonMode: true,
-      // 6000 token 出 5-8 个场景够，避免 gateway 60s 超时
-      maxTokens: opts.maxTokens ?? 6000,
+      // V0: 6000 token 出 5-8 个场景; V1 要 originalText 完整复制原文段, 但 gateway ~90s timeout 不允许 16k
+      maxTokens: opts.maxTokens ?? (opts.v1Mode ? 8000 : 6000),
     },
   );
 
@@ -180,4 +209,64 @@ ${trimmed}
   result.ok = true;
   result.scenario = parsed as Scenario;
   return result;
+}
+
+// ─── V1 第 2 趟: 并行给每个场景挂 originalText ───────────
+
+/**
+ * V1 模式的 Pass 2: 已经有 V0 风格 scenario (结构 + 摘要 description), 现在
+ * 给每个场景**并行**调 LLM, 从源文本里抠出对应的原文段落, 挂到 scene.originalText.
+ *
+ * 为什么不 1-shot 让 LLM 同时切结构 + 输出 originalText:
+ * - 1-shot 输出 ~14k tokens 触发 gateway 504. 实测过.
+ * - 2-pass 每次输出 ~1.5k tokens, 5 个场景并行 ~30s 全完, gateway 友好.
+ *
+ * 每个场景一次 LLM 调用:
+ * - input: 完整源文本 + 该场景的 description 和 hints
+ * - output: 该场景对应的源文本 verbatim 段落 (纯文本)
+ */
+export async function enrichWithOriginalText(
+  scenario: Scenario,
+  sourceText: string,
+  provider: LlmProvider,
+  opts: { temperature?: number; maxTokens?: number } = {},
+): Promise<Scenario> {
+  const tasks = scenario.scenes.map(async (scene, idx) => {
+    const prompt = `下面是一个 COC 跑团本的源文本 (共 ${sourceText.length} 字), 以及一个已切好的场景元数据.
+
+任务: 从源文本里**逐字逐句抠出**这个场景对应的完整原文段落. 严格 verbatim, 不许重写, 不许省略, 不许总结. 直接返回那一段原文.
+
+【场景 ${idx + 1} 元数据】
+ID: ${scene.id}
+名: ${scene.name}
+摘要: ${scene.description}
+${(scene.hints && scene.hints.length > 0) ? `提示: ${scene.hints.join(' / ')}` : ''}
+
+【源文本】
+"""
+${sourceText}
+"""
+
+输出: 直接给原文段落, 不带任何 markdown / 解释 / 引号. 段落应该和摘要 / 提示语义匹配, 长度通常 500-2000 字, 跨越一个完整章节边界.`;
+
+    try {
+      const response = await provider.chat(
+        [{ role: 'user', content: prompt }],
+        {
+          temperature: opts.temperature ?? 0.1,
+          maxTokens: opts.maxTokens ?? 4000,
+        },
+      );
+      const passage = response.content.trim()
+        .replace(/^"""\s*/, '').replace(/\s*"""$/, '')
+        .replace(/^```[a-z]*\s*/, '').replace(/\s*```$/, '');
+      return { ...scene, originalText: passage };
+    } catch (e) {
+      console.warn(`  ⚠ 场景 ${scene.id} 抽 originalText 失败: ${(e as Error).message.slice(0, 80)}`);
+      return scene;
+    }
+  });
+
+  const enrichedScenes = await Promise.all(tasks);
+  return { ...scenario, scenes: enrichedScenes };
 }

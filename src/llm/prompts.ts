@@ -65,6 +65,11 @@ export interface BuildSceneContextParams {
     hints?: string[];
     /** 可触发的检定（作者预设的）*/
     expectedChecks?: { skill: string; difficulty: string; reason: string }[];
+    /**
+     * V1: 此场景对应的原作完整段落 (parser 切段时保留).
+     * 给 LLM 看, 让它"忠实改编"而不是自由脑补.
+     */
+    originalText?: string;
   };
   character: Pick<Character, 'name' | 'occupation' | 'currentHp' | 'currentSanity' | 'maxHp' | 'maxSanity' | 'conditions'>;
   narrative: NarrativeState;
@@ -117,6 +122,18 @@ ${recentChoices || '  (尚无)'}
 ${p.scene.hints?.length ? `【作者提示】\n${p.scene.hints.map((h) => `  - ${h}`).join('\n')}` : ''}
 
 ${p.scene.expectedChecks?.length ? `【可能触发的检定】\n${p.scene.expectedChecks.map((c) => `  - ${c.skill}（${c.difficulty}）：${c.reason}`).join('\n')}` : ''}
+
+${p.scene.originalText ? `【原作段落 · 必须忠实改编, 不许偏离主线】
+"""
+${p.scene.originalText}
+"""
+
+★ 你写的 narrate 必须**完全基于上面这段原作**:
+  - 角色名 / 地点名 / 物件名 / 关键道具 / 关键对话 → 一一对应原作
+  - 原作里发生的关键事件 → 必须在你的 narrate 里发生
+  - 原作没有的角色 / 事件 / 设定 → **绝对不允许凭空发明**
+  - 你的工作是"把上面原作改写成 galgame 风的 narrate 段落 (1-3 句)", 不是创作新故事
+` : ''}
 `.trim();
 }
 

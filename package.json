@@ -11,6 +11,7 @@
     "demo": "node --env-file=.env --import tsx scripts/console-demo.ts",
     "parse": "node --env-file=.env --import tsx scripts/parse-scenario.ts",
     "parse:multi": "node --env-file=.env --import tsx scripts/parse-scenario-multi.ts",
+    "parse:text": "node --env-file=.env --import tsx scripts/parse-text.ts",
     "build:webgal": "node --import tsx scripts/build-webgal-game.ts",
     "gen:ai-game": "node --env-file=.env --import tsx scripts/generate-ai-game.ts",
     "create:character": "node --import tsx scripts/create-character.ts",

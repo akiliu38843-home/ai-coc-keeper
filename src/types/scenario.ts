@@ -68,6 +68,24 @@ export interface Scene {
   name: string;
   /** 给 LLM 的场景背景描述 */
   description: string;
+  /**
+   * V1: 此场景对应的原作完整段落 (parser 切段时保留, 不再压缩).
+   *
+   * 跟 description 的区别:
+   *   - description: 2-4 句压缩摘要, 给 LLM 看建立场景认知
+   *   - originalText: 原作 800-2000 字完整段落, 给 LLM 在 enterScene 时
+   *     做"忠实改编"参考, 让 narrate 贴近原作具体情节
+   *
+   * 不在 V0 路径上的 scenario (手写本) 可以省略, builder 自动 fallback 用 description.
+   */
+  originalText?: string;
+  /**
+   * V1: 此场景必须发生的强制事件 (战斗 / 检定), 不放进可选 4 个行动里.
+   * builder 自动把这些塞进 main narrate 而非 in-scene action.
+   *
+   * 例: { kind: 'combat', skill: 'brawl', narrate: '走廊尽头扑上来一只...' }
+   */
+  mandatoryEvents?: MandatoryEvent[];
   /** 作者埋的暗示 (给 LLM 看, 不直接给玩家) */
   hints?: string[];
   /** 此场景里 NPC 列表（id 引用 scenario.npcs）*/
@@ -86,6 +104,20 @@ export interface Scene {
   /** 场景氛围 —— 给 builder 选默认 BGM 用 */
   mood?: SceneMood;
 }
+
+/**
+ * V1: 此场景必须发生的强制事件 (战斗 / 检定 / 心智冲击).
+ *
+ * 跟 expectedChecks 的区别:
+ *   - expectedChecks: LLM 可能在 in-scene action 里建议的检定 (玩家选了才发生)
+ *   - mandatoryEvents: builder 强制塞进 main narrate (玩家无法跳过)
+ *
+ * 用于"原作明确说战斗必然发生"的场景 (例: 琥珀の牢 在総裁室必须打 boss).
+ */
+export type MandatoryEvent =
+  | { kind: 'combat'; skill: string; narrate: string; onSuccess?: string; onFailure?: string; damageOnFailure?: string }
+  | { kind: 'check'; skill: string; difficulty?: 'normal' | 'hard' | 'extreme'; narrate: string }
+  | { kind: 'sanity'; trigger: string; lossOnSuccess: number; lossOnFailureRoll: string };
 
 /** 场景氛围分类，决定默认 BGM */
 export type SceneMood =

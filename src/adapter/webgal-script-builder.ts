@@ -209,6 +209,28 @@ export interface SceneSectionOptions {
    */
   sceneIndex?: number;
   /**
+   * V2 (death L1): gen-time 算好的"该场景结束时玩家状态".
+   * builder 在主 narrate 末尾插 setVar 同步给 WebGAL, 后面用 -when=currentHp<=0
+   * 等条件跳转触发 bad_end.
+   *
+   * 不传则 builder 不插任何 setVar, 死亡判定不会触发 (兼容老路径).
+   */
+  stateAfterScene?: {
+    currentHp: number;
+    currentSanity: number;
+    maxHp: number;
+    maxSanity: number;
+  };
+  /**
+   * V2 (death L1): bad_end label 名 (调用方决定).
+   * 设了, builder 会在 stateAfterScene 之后插 2 个条件 jumpLabel:
+   *   jumpLabel:<deadEndLabel> -when=currentHp<=0;
+   *   jumpLabel:<madEndLabel> -when=currentSanity<=0;
+   * 没设则不插 (兼容老路径).
+   */
+  deadEndLabel?: string;
+  madEndLabel?: string;
+  /**
    * 终结场景（无 exits）追加一个"出口选项"，跳到指定 label。
    *
    *   { buttonLabel: '结束这段旅程', target: 'journey_recap' }
@@ -307,6 +329,23 @@ export function sceneToWebgalSection(
     lines.push(...opts.actions.flatMap((a) => actionToWebgalLines(a)));
   }
 
+  // V2 (death L1): 主叙事后同步玩家状态到 WebGAL 变量 + 死亡判定
+  // gen-time 算好的 currentHp / currentSanity 写进 setVar, 然后用 -when= 条件跳
+  // jumpLabel 触发对应 bad_end intro 卡, 整本 game over.
+  if (opts.stateAfterScene) {
+    const s = opts.stateAfterScene;
+    lines.push(`setVar:currentHp=${s.currentHp};`);
+    lines.push(`setVar:currentSanity=${s.currentSanity};`);
+    lines.push(`setVar:maxHp=${s.maxHp};`);
+    lines.push(`setVar:maxSanity=${s.maxSanity};`);
+    if (opts.deadEndLabel) {
+      lines.push(`jumpLabel:${opts.deadEndLabel} -when=currentHp<=0;`);
+    }
+    if (opts.madEndLabel) {
+      lines.push(`jumpLabel:${opts.madEndLabel} -when=currentSanity<=0;`);
+    }
+  }
+
   const hasExits = scene.exits && scene.exits.length > 0;
   const hasInScene = opts.inSceneActions && opts.inSceneActions.length > 0;
   const isTerminal = !hasExits;
@@ -378,8 +417,36 @@ function transitionLabelName(fromSceneId: string, exitIndex: number): string {
 }
 
 /**
- * 游戏开场 intro 段：显示剧本标题 / 设定 + 玩家角色信息
+ * V2 (story L1): 从 scenario.authorNotes 提炼"玩家目标"作为入场卡内容.
+ *
+ * authorNotes 是给 LLM 看的剧本主干概述, 通常 100-300 字, 包含:
+ *   - 背景设定
+ *   - 关键谜题
+ *   - 真相
+ *   - 推荐技能
+ *
+ * 我们只取**前 2-3 句**作为玩家目标提示 (避免剧透真相).
+ * 如果 authorNotes 没设置, 返回 null 让调用方走旁白兜底.
+ */
+function extractGoalFromAuthorNotes(notes: string | undefined): string[] | null {
+  if (!notes || notes.length < 20) return null;
+  // 按 。/.！?  断句, 取前 2-3 句
+  const sentences = notes
+    .split(/[。！？!?]\s*/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0)
+    .slice(0, 3)
+    .map((s) => (s.endsWith('。') || s.endsWith('.') ? s : s + '。'));
+  if (sentences.length === 0) return null;
+  return sentences;
+}
+
+/**
+ * 游戏开场 intro 段：显示剧本标题 / 设定 + 玩家角色信息 + V2 入场目标卡
  * 返回 WebGAL 行数组（不带 label 包裹，调用方拼到 startTxt 里）
+ *
+ * V2 (story L1): 开场加一张 "你是谁 / 在哪 / 要干嘛" intro 卡, 玩家不再迷茫.
+ * 内容从 scenario.setting + scenario.authorNotes 提炼.
  */
 function buildIntroSection(scenario: Scenario, character?: Character): string[] {
   const lines: string[] = [];
@@ -409,7 +476,22 @@ function buildIntroSection(scenario: Scenario, character?: Character): string[] 
       const skillText = topSkills.map((s) => `${s.name} ${skillTotal(s)}`).join('  ');
       lines.push(`旁白:${escapeForWebgal(`主要技能 —— ${skillText}`)};`);
     }
+  }
 
+  // V2 入场目标卡: 从 authorNotes 第一段提炼"目标" (作者意图概述)
+  // 多行 intro 卡: 标题 + 1-3 行目标 + 准备好按钮意识
+  const goal = extractGoalFromAuthorNotes(scenario.authorNotes);
+  if (goal) {
+    const goalLines = [
+      '你的处境',
+      ...goal.map((g) => escapeForWebgal(g)),
+      '深呼吸. 你将独自面对接下来的一切.',
+    ];
+    lines.push(
+      `intro:${goalLines.join('|')} -animation=fadeIn -fontColor=rgba(216, 201, 166, 1) -fontSize=medium -delayTime=2400;`,
+    );
+  } else if (character) {
+    // 兜底: 没 authorNotes 时仍然给一句"准备好" 旁白
     lines.push(`旁白:${escapeForWebgal('深呼吸，你将独自面对接下来的一切。')};`);
   }
 
@@ -448,6 +530,23 @@ export interface BuildScenarioGameInputOptions {
    * 不传则 terminal scene 走完 narrate 后只能停留在 choose 菜单循环.
    */
   terminalExit?: { buttonLabel: string; target: string };
+  /**
+   * V2 (death L1): 每场景结束后的玩家状态 (HP/SAN). gen-time 算好.
+   * Map key = sceneId, value = { currentHp, currentSanity, maxHp, maxSanity }.
+   *
+   * 设了:
+   *   - 每场景主 narrate 后插 setVar 同步状态
+   *   - 自动生成 2 张 bad_end intro 卡 (你死了 / 你疯了)
+   *   - 每场景之后插条件 jumpLabel 跳 bad_end
+   *
+   * 不设: 沿用 V0 路径, 无死亡判定.
+   */
+  perSceneEndState?: Map<string, {
+    currentHp: number;
+    currentSanity: number;
+    maxHp: number;
+    maxSanity: number;
+  }>;
 }
 
 export function buildScenarioGame(
@@ -468,6 +567,11 @@ export function buildScenarioGame(
     `jumpLabel:${p ? `${p}__${scenario.startSceneId}` : scenario.startSceneId};`,
   ].join('\n');
 
+  // V2: bad_end label 名 (本剧本内唯一, 走 prefix 兼容 launcher 多本)
+  const deadEndLabel = p ? `${p}__bad_end_dead` : 'bad_end_dead';
+  const madEndLabel = p ? `${p}__bad_end_mad` : 'bad_end_mad';
+  const hasDeathCheck = !!opts.perSceneEndState;
+
   // 所有 scenes 写到一个文件里（用 label 区分），简化 routing
   const sceneFiles = new Map<string, string>();
   const lastSceneIdx = scenario.scenes.length - 1;
@@ -485,10 +589,39 @@ export function buildScenarioGame(
       if (i === lastSceneIdx && opts.terminalExit) {
         sceneOpts.terminalExit = opts.terminalExit;
       }
+      // V2 (death L1): 每场景注入"主路径走完时的状态" + 死亡跳转
+      const endState = opts.perSceneEndState?.get(s.id);
+      if (endState) {
+        sceneOpts.stateAfterScene = endState;
+        sceneOpts.deadEndLabel = deadEndLabel;
+        sceneOpts.madEndLabel = madEndLabel;
+      }
       return sceneToWebgalSection(s, sceneOpts);
     })
     .join('\n\n');
-  sceneFiles.set('scenes', allScenesTxt);
+
+  // V2 (death L1): 末尾追加 2 张 bad_end intro 卡 (死亡 / 心智崩溃)
+  const badEndsTxt = hasDeathCheck ? buildBadEndSection(deadEndLabel, madEndLabel) : '';
+
+  sceneFiles.set('scenes', allScenesTxt + (badEndsTxt ? '\n\n' + badEndsTxt : ''));
 
   return { startTxt, sceneFiles };
+}
+
+/**
+ * V2 (death L1): 生成 2 张 bad_end 全屏 intro 卡 (死亡 / 心智崩溃).
+ * 玩家被 -when=currentHp<=0 / -when=currentSanity<=0 跳到这里, 没有出口, end;.
+ */
+function buildBadEndSection(deadEndLabel: string, madEndLabel: string): string {
+  return [
+    `;----- bad_end · 死亡 -----`,
+    `label:${deadEndLabel};`,
+    `intro:你死了。|身体先于意识停下。|这场调查不会有你的回声。 -animation=fadeIn -fontColor=rgba(196, 69, 55, 1) -fontSize=large -delayTime=2600;`,
+    `end;`,
+    ``,
+    `;----- bad_end · 心智崩溃 -----`,
+    `label:${madEndLabel};`,
+    `intro:你的心智彻底碎了。|身体活着, 但里面的人已经不在。|余下的故事, 不是你写的。 -animation=fadeIn -fontColor=rgba(168, 149, 120, 1) -fontSize=large -delayTime=2600;`,
+    `end;`,
+  ].join('\n');
 }
