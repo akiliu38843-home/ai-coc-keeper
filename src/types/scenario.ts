@@ -31,6 +31,28 @@ export interface CheckDef {
   };
 }
 
+// ─── 作者预写的探索动作（V3：探索意义化） ────────────
+
+/**
+ * 作者在 scenario JSON 里手写的探索按钮。
+ *
+ * 点选后玩家看 resultNarrate 一段, 然后:
+ *   - sets 里的 flag 自动 setVar (后续场景的 exit.requires / ending.conditionExpr 用得上)
+ *   - 跳回探索子菜单 (hub-spoke 模式) 或 hub (单层模式)
+ *
+ * 例: 仓库的"翻箱子":
+ *   { label: '翻箱子', resultNarrate: '...你在角落找到一把手枪.', sets: { hasGun: true } }
+ *
+ * label ≤ 14 字 (builder 会自动截断, 但作者最好自控).
+ * resultNarrate 一段完整旁白, builder 用 splitIntoPages 自动分页.
+ */
+export interface InSceneActionDef {
+  label: string;
+  resultNarrate: string;
+  /** 点选后自动 set 的 flag */
+  sets?: Record<string, boolean | number | string>;
+}
+
 // ─── 心智耗损触发（场景里的恐怖刺激）─────────────────
 
 export interface SanityTrigger {
@@ -107,6 +129,18 @@ export interface Scene {
     requires?: Record<string, boolean | number | string>;
     sets?: Record<string, boolean | number | string>;
   }[];
+  /**
+   * V3 (探索意义化): 作者预写的"探索动作", 玩家点选后看 resultNarrate + 自动 set flag.
+   * builder 渲染 hub-spoke 2 层菜单时, 这些会出现在 "· 探索这里 ·" 子菜单.
+   *
+   * 跟 exits 的区别:
+   *   - exits: 推进剧情 / 离开本场景
+   *   - inSceneActions: 留在场景里探索 / 拿道具 / 触发 SAN, 走完循环回探索菜单
+   *
+   * sets 让"探索 = 拿钥匙 / 拿资料"成立 (原作里几乎所有关键 flag 都来自房间探索).
+   * 一次性 (oneShot): 点过的探索按钮在子菜单里 disabled, 不让玩家无限循环看废话.
+   */
+  inSceneActions?: InSceneActionDef[];
   /** 进入此场景前必须满足的 flags（用于引擎校验）*/
   requiredFlags?: Record<string, boolean | number | string>;
   /** 此场景的 BGM / 背景图（资源 ID） */

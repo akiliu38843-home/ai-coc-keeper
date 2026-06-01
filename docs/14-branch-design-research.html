@@ -1,0 +1,614 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>ai-coc-keeper · 剧本分支生成逻辑设计</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  :root {
+    --ink:        #2a241a;
+    --ink-dim:    #6b5d44;
+    --ink-faint:  #a89578;
+    --paper:      #f7f1e1;
+    --paper-2:    #efe6cf;
+    --paper-3:    #e8dcc2;
+    --amber:      #b89559;
+    --amber-bri:  #d6b076;
+    --blood:      #8b2c1f;
+    --blood-bri:  #c44537;
+    --border:     #d6c8a6;
+    --good:       #4a6b3d;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: "Noto Serif SC","Songti SC","Source Han Serif","Hiragino Mincho ProN",serif;
+    line-height: 1.75; padding: 32px 20px 80px;
+  }
+  main { max-width: 1100px; margin: 0 auto; }
+  header.top { border-bottom: 2px solid var(--border); padding-bottom: 18px; margin-bottom: 28px; }
+  h1 { font-size: 28px; margin: 0 0 6px; }
+  .lede { color: var(--ink-dim); font-size: 15px; max-width: 880px; }
+
+  /* TOC */
+  .toc {
+    background: var(--paper-2); border: 1px solid var(--border);
+    border-left: 4px solid var(--amber); padding: 14px 20px;
+    margin-bottom: 28px; border-radius: 2px;
+  }
+  .toc h3 { margin: 0 0 8px; font-size: 13px; color: var(--blood); letter-spacing: 0.18em; text-transform: uppercase; }
+  .toc ol { margin: 0; padding-left: 22px; font-size: 14px; }
+  .toc a { color: var(--ink); text-decoration: none; }
+  .toc a:hover { color: var(--blood); text-decoration: underline; }
+
+  h2.section {
+    font-size: 20px; color: var(--blood);
+    border-left: 4px solid var(--amber); padding-left: 12px;
+    margin: 36px 0 16px; letter-spacing: 0.05em;
+  }
+  h3.sub { font-size: 16px; color: var(--ink); margin: 24px 0 10px; }
+
+  .card {
+    background: var(--paper-2); border: 1px solid var(--border);
+    border-radius: 3px; padding: 18px 24px; margin-bottom: 18px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+  }
+  .card h4 {
+    margin: 0 0 8px; color: var(--amber); font-size: 14px;
+    letter-spacing: 0.12em; text-transform: uppercase;
+  }
+
+  .quote {
+    background: var(--paper); border-left: 3px solid var(--amber);
+    padding: 8px 14px; margin: 8px 0; font-size: 13px;
+    color: var(--ink-dim); font-style: italic;
+  }
+  .quote .src { display: block; margin-top: 4px; color: var(--ink-faint); font-size: 11px; }
+
+  table {
+    width: 100%; border-collapse: collapse; margin: 12px 0;
+    font-size: 13.5px;
+  }
+  th, td {
+    border: 1px solid var(--border); padding: 8px 10px;
+    text-align: left; vertical-align: top;
+  }
+  th { background: var(--paper-3); color: var(--ink); font-weight: 600; font-size: 12.5px; letter-spacing: 0.05em; }
+  td.ok { color: var(--good); }
+  td.no { color: var(--blood); }
+  td.mid { color: var(--ink-dim); }
+  td .star { color: var(--amber); }
+
+  .branch-list {
+    list-style: none; padding: 0; margin: 0;
+  }
+  .branch-list li {
+    padding: 10px 14px; margin: 6px 0;
+    background: var(--paper); border: 1px solid var(--border);
+    border-left: 3px solid var(--blood); border-radius: 2px;
+    font-size: 14px;
+  }
+  .branch-list .num {
+    display: inline-block; width: 28px; height: 28px; line-height: 28px;
+    text-align: center; background: var(--blood); color: #fff;
+    border-radius: 50%; font-weight: 600; margin-right: 12px; font-size: 12px;
+  }
+  .branch-list .title {
+    color: var(--ink); font-weight: 600;
+  }
+  .branch-list .detail {
+    color: var(--ink-dim); font-size: 13px; margin-top: 4px;
+    padding-left: 40px;
+  }
+
+  .mermaid {
+    background: #fff;
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    margin: 12px 0;
+  }
+
+  pre {
+    background: #fff; border: 1px solid var(--border);
+    padding: 12px 16px; border-radius: 2px;
+    font-family: "SF Mono","Menlo",monospace;
+    font-size: 12.5px; overflow-x: auto;
+    line-height: 1.5;
+  }
+  code {
+    background: var(--paper); padding: 1px 6px; border-radius: 2px;
+    font-family: "SF Mono","Menlo",monospace; font-size: 12.5px;
+    color: var(--blood);
+  }
+
+  .verdict {
+    background: var(--paper-2); border: 2px solid var(--amber);
+    border-left: 6px solid var(--amber); padding: 16px 22px;
+    margin: 24px 0; border-radius: 2px;
+  }
+  .verdict h3 {
+    margin-top: 0; color: var(--blood);
+    letter-spacing: 0.12em; text-transform: uppercase; font-size: 14px;
+  }
+
+  .pill {
+    display: inline-block; padding: 2px 10px;
+    background: var(--paper-3); color: var(--ink-dim);
+    border: 1px solid var(--border); border-radius: 10px;
+    font-size: 11px; margin-right: 4px;
+  }
+  .pill.good { background: #d4e2cf; color: var(--good); border-color: #93b384; }
+  .pill.bad { background: #efd3cd; color: var(--blood); border-color: #d09a8e; }
+  .pill.mid { background: #f0e3c0; color: #856a1f; border-color: #c8aa5e; }
+
+  .ending-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 10px; margin: 12px 0;
+  }
+  @media (max-width: 720px) { .ending-grid { grid-template-columns: 1fr; } }
+  .ending-grid .e {
+    background: var(--paper); border: 1px solid var(--border);
+    padding: 10px 14px; border-radius: 2px; font-size: 13px;
+  }
+  .ending-grid .e h5 {
+    margin: 0 0 6px; color: var(--amber); font-size: 13px;
+    letter-spacing: 0.1em;
+  }
+
+  footer {
+    margin-top: 40px; padding-top: 18px;
+    border-top: 1px solid var(--border);
+    color: var(--ink-dim); font-size: 13px; text-align: center;
+  }
+
+  .copy-btn {
+    background: var(--paper); border: 1px solid var(--amber);
+    color: var(--blood); padding: 8px 16px; border-radius: 2px;
+    font-family: inherit; font-size: 13px; cursor: pointer;
+    transition: all 0.2s ease; margin: 12px 0;
+  }
+  .copy-btn:hover { background: var(--amber); color: #fff; }
+</style>
+</head>
+<body>
+<main>
+
+<header class="top">
+  <h1>剧本分支生成逻辑设计 · 调研 + 方案</h1>
+  <p class="lede">
+    解决问题: V2 P1.B 自动生成分支前, 必须先想清楚分支怎么设计 / 怎么验证 / 怎么修复.
+    分 6 章: 原作分支扫描 → 业界套路调研 → 技术手段对比 → 我的方案 → 路线 → 拍板.
+  </p>
+</header>
+
+<div class="toc">
+  <h3>目录</h3>
+  <ol>
+    <li><a href="#a">A · kohaku 原作天然分支扫描 (6 个分支点 + 5 种结局组合)</a></li>
+    <li><a href="#b">B · 业界主流分支设计套路 (5 种 + 代表作)</a></li>
+    <li><a href="#c">C · 技术手段对比 (手工 / 半自动 / LLM auto / Hybrid)</a></li>
+    <li><a href="#d">D · 我对 ai-coc-keeper 的分支生成方案</a></li>
+    <li><a href="#e">E · 推荐实施路线 + 验证机制</a></li>
+    <li><a href="#f">F · 给我的选项 (你拍板)</a></li>
+  </ol>
+</div>
+
+<!-- ========== A · 原作扫描 ========== -->
+<h2 class="section" id="a">A · kohaku 原作天然分支扫描</h2>
+
+<p>我重读了 kohaku 原作中文翻译 (来源: <a href="https://maricoro.com/kohaku.html">CSC · 琥珀の牢</a>) 的全文 638 行. 不是线性单线本, **作者埋了 6 个明确分歧点 + 至少 5 种结局组合**.</p>
+
+<h3 class="sub">A.1 6 个分歧点 (原文标注的)</h3>
+
+<ul class="branch-list">
+  <li>
+    <span class="num">1</span><span class="title">救不救伊藤? (line 180 作者明示)</span>
+    <div class="detail">
+      原文: "这里就是要决定要不要救伊藤的分歧点". 救了 → 伊藤陪你到终局, 能开直升机. 不救 → 后期回头 → 伊藤已被杀.
+    </div>
+  </li>
+  <li>
+    <span class="num">2</span><span class="title">穿不穿防护服探索?</span>
+    <div class="detail">
+      原文 line 170-176: 穿了 → 几乎不被发现, 但身体技能 -10%. 不穿 → 容易被识破触发警报. 防护服只有 1 套.
+    </div>
+  </li>
+  <li>
+    <span class="num">3</span><span class="title">研究所探索顺序 (开放沙盒)</span>
+    <div class="detail">
+      仓库 / 病毒培养室 / 样本保管库 / 药剂室 / 研究办公室 / 生体实验室 / 宿泊室 / 资料室 — **8 个房间任意顺序**, 每个有不同检定 + 收益. 玩家可能只去 3 个, 也可能 8 个全去.
+    </div>
+  </li>
+  <li>
+    <span class="num">4</span><span class="title">蛇人 boss 战: 打 vs 偷溜</span>
+    <div class="detail">
+      原文 line 506: "如果调查员不打倒蛇人、而是想直接逃走, 就跳到描写部分". 打 → 拿到密码纸条. 偷溜 → 触发"伊古"召唤, 巨型蛇怪追击. 走法完全不同.
+    </div>
+  </li>
+  <li>
+    <span class="num">5</span><span class="title">是否启动自爆?</span>
+    <div class="detail">
+      原文 line 588-590: "不启动自爆装置直接逃跑 → 不管从哪边逃, 都会出现大量蛇, 调查员会被蛇攻击致死". **不启动 = 强制 BAD END**.
+    </div>
+  </li>
+  <li>
+    <span class="num">6</span><span class="title">逃跑路径: 屋顶直升机 vs 1 楼</span>
+    <div class="detail">
+      屋顶: 需要伊藤 (或写日记的所员) 会开直升机. 1 楼: 撑过 2 轮蛇攻击 + 出门遇丧尸 (需"死之粉"否则死).
+    </div>
+  </li>
+</ul>
+
+<h3 class="sub">A.2 结局组合矩阵</h3>
+
+<div class="ending-grid">
+  <div class="e">
+    <h5>★★★ HAPPY END (带抗体疫苗资料脱出)</h5>
+    <p>条件: 自爆 + 屋顶/1楼脱出 + 拿到 <code>hasVaccineData==true</code> 或 <code>hasZVirusData==true</code></p>
+    <p>SAN 恢复 1D10. 世界被拯救.</p>
+  </div>
+  <div class="e">
+    <h5>★★ NORMAL END (没带资料脱出)</h5>
+    <p>条件: 自爆 + 屋顶/1楼脱出 + 没拿到关键资料</p>
+    <p>SAN 恢复 1D6. 抗体被找到, 世界慢慢拯救.</p>
+  </div>
+  <div class="e">
+    <h5>★ BAD END · 蛇咬死 (1 楼路线)</h5>
+    <p>条件: 选 1 楼路线 + 撑不过 2 轮蛇攻击</p>
+  </div>
+  <div class="e">
+    <h5>★ BAD END · 丧尸咬死 (1 楼出门)</h5>
+    <p>条件: 1 楼到达地面 + 没带死之粉</p>
+  </div>
+  <div class="e">
+    <h5>★ BAD END · 没启动自爆</h5>
+    <p>条件: 没按自爆装置直接逃 → 蛇围攻</p>
+  </div>
+  <div class="e">
+    <h5>★ BAD END · 屋顶但无人开机</h5>
+    <p>条件: 屋顶路线 + 伊藤死 + 没救所员</p>
+  </div>
+</div>
+
+<p style="margin-top:14px">SAN 还有 4 个独立加成: 带伊藤回去 (+1D3) / 带所员回去 (+1D3) / 救生体实验室人质 (+1D3) / 带 Z 病毒资料 (+1D3).</p>
+
+<div class="verdict">
+  <h3>原作扫描结论</h3>
+  <p>
+    琥珀の牢**本身就是真分支多结局本子**. 我们 V0 parser 砍成 5 场景线性是"压缩 10.8 倍"的副作用,
+    不是原作没分支. 同样道理, Chaosium 官方 1 人本 <code>Alone Against the Flames</code> 有
+    <strong>270 个探索段 + 18 种结局</strong> (Chaosium 官方数据).
+  </p>
+  <p>
+    意味着: <strong>V2 P1.B 的工作不是"凭空造分支", 是"识别 + 还原原作分支"</strong>. 这降低了 LLM 风险.
+  </p>
+</div>
+
+<!-- ========== B · 业界套路 ========== -->
+<h2 class="section" id="b">B · 业界主流分支设计套路</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>套路</th>
+      <th>代表作 / 工具</th>
+      <th>分支方式</th>
+      <th>状态系统</th>
+      <th>典型规模</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>纯 CYOA (Choose Your Own Adventure)</strong></td>
+      <td>Bantam 80 年代系列 / AAtF / Lone Wolf</td>
+      <td>段落编号, 每段 2-3 个选择跳到不同段</td>
+      <td class="no">几乎无 (有少量物品标记)</td>
+      <td>200-400 段 / 10-25 结局</td>
+    </tr>
+    <tr>
+      <td><strong>Ink (inkle 公司)</strong></td>
+      <td>80 Days / Heaven's Vault / Sorcery!</td>
+      <td>文本 DSL 写流程, 嵌入 <code>{if}</code> 条件 / 变量 / 跳转</td>
+      <td class="ok">完整 (booleans / counters / lists)</td>
+      <td>10k+ 段, 复杂 NPC 状态网</td>
+    </tr>
+    <tr>
+      <td><strong>ChoiceScript (Choice of Games)</strong></td>
+      <td>Choice of the Dragon / 大量商业短篇</td>
+      <td>命令式语法, 每个章节 1-2 个 *choice 节点</td>
+      <td class="ok">完整 (角色属性 + flags)</td>
+      <td>50-200 章节 / 4-12 结局</td>
+    </tr>
+    <tr>
+      <td><strong>Twine</strong></td>
+      <td>独立 IF 创作社区</td>
+      <td>可视化节点编辑, 节点间画线</td>
+      <td class="mid">中等 (扩展库)</td>
+      <td>跨度大 (30-1000 节点)</td>
+    </tr>
+    <tr>
+      <td><strong>视觉小说 / Galgame (NVL/ADV)</strong></td>
+      <td>Fate / 月姫 / Steins;Gate</td>
+      <td>主线 + 1-3 个角色线分歧, 通常**flag 后期影响**</td>
+      <td class="ok">完整 (大量 flag, 攻略性强)</td>
+      <td>20+ 小时游玩 / 5-10 个结局</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="card" style="margin-top:18px">
+  <h4>关键洞察</h4>
+  <p><strong>纯 CYOA</strong> 状态系统最简, 但分支爆炸难管理 — 作者要画大图. AAtF 走这套.</p>
+  <p><strong>Ink / ChoiceScript</strong> 有完整变量系统, 适合"状态影响远端剧情" (我们 V2 想要的). Sorcery! 这种 3-4 个状态 (健康/胆量/技巧/...) + 几十个 flag 撑起一整个三部曲.</p>
+  <p><strong>Galgame 套路</strong> 经典是"主线大致一致, 分歧点设在关键时机, 累积 flag 决定后期女主线". 我们做 1 人本不全照搬, 但"主线 + 几个关键岔口"的轻分支模式适合 V2.</p>
+</div>
+
+<!-- ========== C · 技术手段对比 ========== -->
+<h2 class="section" id="c">C · 4 条技术路线 (用什么方式造分支)</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>路线</th>
+      <th>作者要做的事</th>
+      <th>AI 做的事</th>
+      <th>质量稳定性</th>
+      <th>规模化</th>
+      <th>用户场景</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>路线 1 · 全手工</strong></td>
+      <td>写完整 scenario.json (含 exits / flags / endings 全标好)</td>
+      <td class="no">不参与, 只渲染 narrate</td>
+      <td class="ok">最高 — 作者意图百分百</td>
+      <td class="no">慢 — 一本 1-3 天</td>
+      <td>专业作者 / 高质量发布</td>
+    </tr>
+    <tr>
+      <td><strong>路线 2 · LLM 抽取已有结构</strong></td>
+      <td>提供原作 + 让 AI 找分支</td>
+      <td class="mid">读原作 + 抽取已有分歧点 + 标记 flag</td>
+      <td class="mid">高 (原作有什么 AI 抽什么, 不发明)</td>
+      <td class="ok">快 — 1 本 < 1 小时</td>
+      <td>★ 改编现有跑团本 (我们这种)</td>
+    </tr>
+    <tr>
+      <td><strong>路线 3 · LLM 增强</strong></td>
+      <td>提供原作 + 给"在 X 处加 Y 分支"指令</td>
+      <td class="mid">读原作 + 按指令插入新分支 + 平衡 flag</td>
+      <td class="no">中等 — AI 可能加得不自洽</td>
+      <td class="ok">快</td>
+      <td>原作太短 / 想加重玩价值</td>
+    </tr>
+    <tr>
+      <td><strong>路线 4 · LLM 全自动</strong></td>
+      <td>只给主题 / 风格指令</td>
+      <td class="no">完全自由编 (结构 + 内容)</td>
+      <td class="no">最低 — 玩起来像 AI Dungeon</td>
+      <td class="ok">最快</td>
+      <td>不在乎跑团真实感 / 大量量产</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="verdict">
+  <h3>我推荐: 路线 2 (LLM 抽取已有结构)</h3>
+  <p>
+    我们这个项目的核心定位是<strong>"AI 改编现有跑团本"</strong> (V1 source L2 选择). 原作有的分支必须保留,
+    AI 不能瞎加. 路线 2 让 AI 做"识别已有"而不是"创造新"的工作, 风险最低.
+  </p>
+  <p>
+    具体: V1 parser 已经能切段保留 originalText, V2 P1.B 让 parser 多做一步 ——
+    <strong>抽取原作每段的"如果调查员选 X 还是 Y" 决策点</strong>, 输出到 scene.exits[] 含 sets/requires, 输出到 scenario.endings[].
+    AI 不发明原作没有的分支.
+  </p>
+</div>
+
+<!-- ========== D · 我的方案 ========== -->
+<h2 class="section" id="d">D · 我对 ai-coc-keeper 的分支生成方案 (路线 2 落地)</h2>
+
+<h3 class="sub">D.1 V2 P1.B 完整 pipeline</h3>
+
+<div class="mermaid">
+flowchart TD
+  A[日文原作 PDF/HTML] --> B[V3 prompt 翻译成中文]
+  B --> C[parser V1 切段保留 originalText]
+  C --> D[parser V2 提取分支点]
+  D --> D1[Scene.exits 多 exit]
+  D --> D2[Scene.exits.sets 关键 flag]
+  D --> D3[Scene.exits.requires 条件 flag]
+  D --> D4[scenario.endings 结局矩阵]
+  D --> D5[scenario.initialFlags 起始]
+  D1 --> E[graph 验证器 检查可达性]
+  D2 --> E
+  D3 --> E
+  D4 --> E
+  D5 --> E
+  E -->|valid| F[gen ai-game 串行生成多路径]
+  E -->|invalid| G[报错给用户手工修]
+  F --> H[WebGAL 脚本含真分支 + ending router]
+
+  style D fill:#f9e79f,stroke:#b89559,stroke-width:3px,color:#2a241a
+  style E fill:#fdebd0,stroke:#8b2c1f,stroke-width:2px,color:#2a241a
+  style H fill:#d4e2cf,stroke:#4a6b3d,stroke-width:2px,color:#2a241a
+</div>
+
+<h3 class="sub">D.2 parser V2 的 prompt 改造 (核心)</h3>
+
+<p>给 LLM 的提示框架 (按 6 步):</p>
+
+<pre>1. 你看完原作, 找"明示分歧点": 原文出现"是否 X / 选择 Y" 措辞
+2. 找"隐含分歧点": 同一场景有多种可能行为且后果不同
+3. 找"作者埋的开放沙盒": 多房间任意顺序探索类
+4. 提取"状态依赖": 后期场景 narrate 提到"如果前面做了 X" 的引用
+5. 提取"结局组合": 原文【结局】章节列出的所有结局变体
+6. 输出严格 JSON: scene.exits[] 含 requires/sets, scenario.endings[] 含 conditionExpr
+
+★ 绝对禁止: 发明原作没有的分支 / 决策点 / 状态.
+★ 不确定的分支: 标 confidence=low, 不要硬塞.</pre>
+
+<h3 class="sub">D.3 kohaku 应有的分支图 (基于 D.1 应该生成的)</h3>
+
+<div class="mermaid">
+flowchart TD
+  S1[白色病房] -->|被睡眠气体放倒| S2
+  S2[第二次醒 + 信件] -->|信任伊藤合作<br/>sets:trustsIto=true| S3
+  S2 -->|不理伊藤独走<br/>sets:trustsIto=false| S3
+  S3[研究所探索 沙盒] -->|穿防护服<br/>sets:wearingProtect=true<br/>身体技能 -10%| S4
+  S3 -->|不穿冒险| S4
+  S4[8 个房间任意探索] -->|拿病毒资料<br/>sets:hasZVirusData=true| S4_2
+  S4 -->|拿抗体疫苗资料<br/>sets:hasVaccineData=true| S4_2
+  S4 -->|救生体实验室人质<br/>sets:savedHuman=true| S4_2
+  S4_2[总裁室] -->|硬刚蛇人<br/>brawl 检定<br/>sets:killedBoss=true| S5
+  S4_2 -->|偷拿密码逃<br/>触发伊古追击| S5
+  S5{选不选自爆?} -->|启动自爆| S6
+  S5 -->|不启动| BAD1[蛇围攻死]
+
+  S6{选路径} -->|屋顶 + 伊藤会开机<br/>requires:trustsIto==true| END_BEST
+  S6 -->|屋顶 + 没人开机| BAD2[屋顶被困]
+  S6 -->|1 楼 + 死之粉<br/>requires:hasZombiePowder==true| END_BEST
+  S6 -->|1 楼 + 没死之粉| BAD3[出门丧尸咬死]
+
+  END_BEST{结局路由} -->|hasVaccineData OR hasZVirusData| HAPPY[HAPPY END<br/>世界拯救]
+  END_BEST -->|没带资料| NORMAL[NORMAL END<br/>缓慢拯救]
+
+  style HAPPY fill:#d4e2cf,stroke:#4a6b3d,color:#2a241a
+  style NORMAL fill:#f0e3c0,stroke:#856a1f,color:#2a241a
+  style BAD1 fill:#efd3cd,stroke:#8b2c1f,color:#2a241a
+  style BAD2 fill:#efd3cd,stroke:#8b2c1f,color:#2a241a
+  style BAD3 fill:#efd3cd,stroke:#8b2c1f,color:#2a241a
+</div>
+
+<p>状态空间 (我标的 kohaku 必要 flag, 加成 flag 单列):</p>
+
+<pre>必要 (影响结局):
+  trustsIto       boolean  — 信任伊藤? scene 2 决定
+  killedBoss      boolean  — 打倒蛇人? scene 4 决定
+  hasVaccineData  boolean  — 拿到抗体疫苗资料? scene 3 拿
+  hasZVirusData   boolean  — 拿到 Z 病毒资料? scene 3 拿
+  hasZombiePowder boolean  — 拿到死之粉? scene 3 配置
+  triggeredAlarm  boolean  — 触发警报? scene 3 探索
+
+加成 (影响 SAN 恢复 / 旁支):
+  savedHuman      boolean  — 救生体实验室人质?
+  savedOfficer    boolean  — 救写日记的所员?
+  knowsTruth      boolean  — 读了教义知道蛇人来历?
+  wearingProtect  boolean  — 穿防护服?</pre>
+
+<h3 class="sub">D.4 验证机制 (gate)</h3>
+
+<p>LLM 输出后必须过 4 个 sanity check, 不过就报错给用户手工修, 不直接 deploy:</p>
+
+<table>
+  <thead><tr><th>Gate</th><th>检查什么</th><th>失败怎么办</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>G1 · 可达性</td>
+      <td>从 startSceneId 起 BFS, 每个 scene 都能达到. 没有"孤岛"</td>
+      <td>报告无法到达的 scene, 让用户检查 exits</td>
+    </tr>
+    <tr>
+      <td>G2 · 至少 2 条不同路径</td>
+      <td>枚举所有从 start 到 ending 的路径, ≥ 2 条</td>
+      <td>报告分支太少, 让 LLM 重新挖或用户手补</td>
+    </tr>
+    <tr>
+      <td>G3 · 至少 2 个结局可触发</td>
+      <td>枚举每个 ending 的 conditionExpr, 至少 2 个有可达组合</td>
+      <td>报告无法触发的 ending, 提示 flag 缺失</td>
+    </tr>
+    <tr>
+      <td>G4 · 没有死循环</td>
+      <td>每个场景有出口 (或是 ending), 没有 A→B→A 循环</td>
+      <td>报告循环路径</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ========== E · 推荐路线 ========== -->
+<h2 class="section" id="e">E · 推荐实施路线</h2>
+
+<table>
+  <thead>
+    <tr><th>阶段</th><th>做什么</th><th>耗时</th><th>风险</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Stage 1 · 手工跑通</strong></td>
+      <td>我手工把 kohaku.v1.scenario.json 扩成 v2 (按 D.3 图), 跑全栈验证整套 V2 引擎工作</td>
+      <td>1-2h</td>
+      <td>低 — 不依赖 LLM</td>
+    </tr>
+    <tr>
+      <td><strong>Stage 2 · parser V2 改造</strong></td>
+      <td>按 D.2 写 prompt, parser 输出含 exits/flags/endings 完整结构. 加 G1-G4 验证</td>
+      <td>4-6h</td>
+      <td>中 — LLM 抽取质量未实测</td>
+    </tr>
+    <tr>
+      <td><strong>Stage 3 · 在 kohaku 跑 parser V2</strong></td>
+      <td>对比 LLM 输出 vs Stage 1 手工版, 看 LLM 能找出多少分支</td>
+      <td>1h</td>
+      <td>低 — 有 baseline 比较</td>
+    </tr>
+    <tr>
+      <td><strong>Stage 4 · 拿别的本子验证泛化</strong></td>
+      <td>找另一本日文 1 人本, 跑 parser V2, 看输出质量</td>
+      <td>2h + 等用户找本子</td>
+      <td>中</td>
+    </tr>
+    <tr>
+      <td><strong>Stage 5 · 如果 LLM 跑得糊涂</strong></td>
+      <td>fallback 到半自动模式: parser 给草稿 + UI 让作者手工调</td>
+      <td>1 天</td>
+      <td>低</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ========== F · 你拍板 ========== -->
+<h2 class="section" id="f">F · 你拍板</h2>
+
+<p>3 个选项:</p>
+
+<div class="card">
+  <h4>选 ① · 走 Stage 1 → 2 → 3 顺序</h4>
+  <p>我先手工扩 kohaku.v2 让你立刻能玩出真分支 (1-2h), 然后再做 parser 自动化. 推荐路径, 风险最小.</p>
+</div>
+
+<div class="card">
+  <h4>选 ② · 直接做 parser V2 跳过手工</h4>
+  <p>我直接改 parser, 让 LLM 一次性产出 kohaku.v2 含分支. 快但风险高, LLM 可能产出不自洽的分支图.</p>
+</div>
+
+<div class="card">
+  <h4>选 ③ · 你说别的方向</h4>
+  <p>例如: "我想要 kohaku 这个本就用手工", "未来新本子才用 parser auto"; 或 "先做 G1-G4 验证器再说"; 或 "你写完 D.2 prompt 给我看了再动".</p>
+</div>
+
+<button class="copy-btn" onclick="copyAnswer()">📋 复制我的方向给 AI</button>
+
+<footer>
+  这份调研基于 kohaku 原作 638 行 + 业界 5 套工具 + 学界 TRPG 分支文献.<br>
+  完成于 2026-05-31. 下次产品决策类 HTML 我都自带"复制状态"按钮 (按你 5/30 反馈).
+</footer>
+
+</main>
+
+<script>
+mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+
+function copyAnswer() {
+  const text = `我的方向: [请填 1 / 2 / 3 / 其他]
+说明: [可选]`;
+  navigator.clipboard.writeText(text).then(() => {
+    alert('已复制模板. 填好填好粘贴给 AI.');
+  });
+}
+</script>
+</body>
+</html>

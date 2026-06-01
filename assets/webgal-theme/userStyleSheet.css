@@ -1,166 +1,157 @@
 /* ============================================================
- * AI-COC-Keeper · 克苏鲁风深色主题
- * 注入到 WebGAL 的 userStyleSheet.css
- * 设计意图: 旧纸 / 烟熏 / 油灯 + 偶尔的暗红警告
+ * userStyleSheet.css ·《卷宗》方案 B — 可直接回贴 WebGAL 注入层
+ * 边狱巴士风: 钢印 / 血红 / 等宽编号 / 卷宗质感
+ * 部署: 复制到 external/WebGAL/packages/webgal/public/game/userStyleSheet.css
+ *
+ * 约束: 所有元素 z-index ≤ 11 (不盖 #introContainer); 仅用 [class*=] 匹配 WebGAL 模糊类名
+ * 说明: 纯 CSS 可落地的部分都在这里。需要动态数据/额外 DOM 的功能(状态 HUD /
+ *      登记条动态编号 / 作废画面 / 角标)走对应注入 JS, 见 README。
  * ========================================================== */
 
 :root {
-  --cthk-ink:        #d8c9a6;   /* 主文字 · 旧纸上的淡墨 */
-  --cthk-ink-dim:    #a89578;   /* 弱化文字 */
-  --cthk-paper:      #15110b;   /* 纸面底色 · 烟熏的暗 */
-  --cthk-paper-2:    #211a10;   /* 略浅一档, 作 hover 用 */
-  --cthk-amber:      #b89559;   /* 油灯黄铜 */
-  --cthk-blood:      #8b2c1f;   /* 警示红 · 暗血 */
-  --cthk-blood-bri:  #c44537;   /* 高亮血红 */
-  --cthk-border:     #3a2e1c;   /* 木框 */
-  --cthk-glow:       0 0 12px rgba(184, 149, 89, 0.35);
-  --cthk-shadow:     0 4px 24px rgba(0, 0, 0, 0.85);
+  --cthk-ink:        #cfc6b4;   /* 主文字 · 骨白 */
+  --cthk-ink-dim:    #a89578;   /* 弱文字 · 灰烬 */
+  --cthk-ink-bright: #ffffff;
+  --cthk-paper:      #15110b;
+  --cthk-paper-2:    #211a10;
+  --cthk-amber:      #b89559;
+  --cthk-amber-bri:  #d9b878;
+  --cthk-blood:      #8b2c1f;
+  --cthk-accent:     #c44537;   /* 血红主调 */
+  --cthk-accent-bri: #e0533f;
+  --cthk-border:     #3a2e1c;
+  --cthk-mono: "Spline Sans Mono", ui-monospace, "SFMono-Regular", "Menlo", monospace;
+  --cthk-serif: "Noto Serif SC", "Songti SC", "STSong", "Source Han Serif",
+                "Hiragino Mincho ProN", "Times New Roman", serif;
 }
 
-/* ----- 文字框 ----- */
+/* ===== 文字框: 机构卷宗 ===== */
+/* 注意: 不能给 .TextBox_main 加 clip-path / overflow:hidden,
+ * 否则 WebGAL 默认 position:absolute; top:-68px 的 .TextBox_showName 浮在 textbox 上方时会被切. */
 [class*="TextBox_main"] {
-  background: linear-gradient(
-    180deg,
-    rgba(21, 17, 11, 0.92) 0%,
-    rgba(15, 11, 7, 0.96) 100%
-  ) !important;
-  border-top: 1px solid var(--cthk-border) !important;
-  box-shadow: var(--cthk-shadow) !important;
-  backdrop-filter: blur(6px);
+  background: linear-gradient(180deg, rgba(14,12,10,.92), rgba(7,6,5,.97)) !important;
+  border-top: none !important;
+  backdrop-filter: blur(5px);
+  box-shadow: 0 -2px 40px rgba(0,0,0,.7), inset 0 0 0 1px rgba(207,198,180,.08) !important;
+  padding-top: 2.6em !important;
 }
-
-[class*="TextBox_Background"] {
-  opacity: 0 !important;  /* 隐藏默认配图背景, 让我们的 gradient 直出 */
+[class*="TextBox_Background"] { opacity: 0 !important; }
+/* 顶部登记条 (静态; 动态 ENTRY №0X 需 builder/JS, 见 README) */
+[class*="TextBox_main"]::before {
+  content: 'ENTRY ░ 调查记录';
+  position: absolute; top: 0; left: 0; right: 0; height: 2.2em;
+  display: flex; align-items: center; padding-left: 1.4em;
+  font-family: var(--cthk-mono); font-size: .95em;
+  letter-spacing: .3em; color: var(--cthk-ink);
+  background: repeating-linear-gradient(45deg,#1a1410 0 8px,#15100c 8px 16px);
+  border-bottom: 1px solid var(--cthk-accent);
+  text-transform: uppercase; z-index: 2;
 }
-
+[class*="TextBox_main"]::after {
+  content: ''; position: absolute; left: 0; top: 2.2em; bottom: 0; width: 3px;
+  background: var(--cthk-accent); z-index: 2;
+}
 [class*="TextBox_textElement"],
 [class*="TextBox_textElement_Settled"] {
   color: var(--cthk-ink) !important;
-  font-family: "Noto Serif SC", "Songti SC", "STSong", "Source Han Serif",
-               "Times New Roman", serif !important;
-  letter-spacing: 0.04em !important;
-  line-height: 1.55 !important;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  font-family: var(--cthk-serif) !important;
+  letter-spacing: .04em !important; line-height: 1.62 !important;
+  text-shadow: 0 1px 3px rgba(0,0,0,.7);
 }
+/* 角色名: 原生 .TextBox_showName 由 coc-ui.js 隐藏 + 文字拷贝到 .cthk-speaker 独立浮层渲染.
+ * 这里只兜底: 万一 coc-ui.js 没加载, 原生也不要太丑. */
+[class*="TextBox_ShowName_Background"] { opacity: 0 !important; }
 
-[class*="TextBox_showName"],
-[class*="nameContainer"] {
-  color: var(--cthk-amber) !important;
-  font-family: "Noto Serif SC", "Songti SC", "STSong", serif !important;
-  font-weight: 600 !important;
-  letter-spacing: 0.08em !important;
-  text-shadow: 0 0 8px rgba(184, 149, 89, 0.4);
-}
-
-[class*="TextBox_ShowName_Background"] {
-  opacity: 0 !important;
-}
-
-/* ----- 选项按钮 (Choose) ----- */
-[class*="Choose_Main"] {
-  gap: 12px !important;
-}
-
+/* ===== 选项: 票根行 + 编号 + 左推血条 ===== */
+[class*="Choose_Main"] { counter-reset: cthkChoose; gap: 12px !important; }
 [class*="Choose_item"] {
-  background: linear-gradient(
-    180deg,
-    rgba(33, 26, 16, 0.94) 0%,
-    rgba(21, 17, 11, 0.98) 100%
-  ) !important;
-  border: 1px solid var(--cthk-border) !important;
-  border-radius: 2px !important;
+  position: relative; overflow: hidden;
+  border-radius: 0 !important;
+  background: #100d0a !important;
+  border: 1px solid rgba(207,198,180,.22) !important;
+  border-left: 3px solid rgba(207,198,180,.3) !important;
   color: var(--cthk-ink) !important;
-  font-family: "Noto Serif SC", "Songti SC", serif !important;
-  letter-spacing: 0.06em !important;
-  padding: 14px 22px !important;
-  position: relative;
-  transition: all 0.25s ease !important;
-  box-shadow: inset 0 0 0 1px rgba(184, 149, 89, 0.08);
+  font-family: var(--cthk-serif) !important; letter-spacing: .06em !important;
+  text-align: left !important; padding: 14px 22px 14px 4.2em !important;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+  transition: all .25s ease !important;
 }
-
+/* 序号 01/02 (CSS counter; 若你的 WebGAL 渲染下计数不生效, 见 README 的 data-idx 兜底) */
+[class*="Choose_item"]::before {
+  counter-increment: cthkChoose;
+  content: counter(cthkChoose, decimal-leading-zero);
+  position: absolute; left: 0; top: 0; bottom: 0; width: 3.4em;
+  display: flex; align-items: center; justify-content: center;
+  border-right: 1px solid rgba(207,198,180,.2);
+  font-family: var(--cthk-mono); font-weight: 700;
+  color: var(--cthk-accent-bri); background: rgba(0,0,0,.32);
+  text-shadow: 0 0 10px rgba(196,69,55,.35);
+}
+[class*="Choose_item"]::after {
+  content: ''; position: absolute; inset: 0; z-index: -1;
+  background: linear-gradient(90deg, rgba(196,69,55,.22), transparent 80%);
+  transform: scaleX(0); transform-origin: left; transition: transform .25s ease;
+}
 [class*="Choose_item"]:hover {
-  border-color: var(--cthk-amber) !important;
-  color: #f4e8c8 !important;
-  background: linear-gradient(
-    180deg,
-    rgba(58, 46, 28, 0.95) 0%,
-    rgba(33, 26, 16, 0.98) 100%
-  ) !important;
-  box-shadow: var(--cthk-glow), inset 0 0 0 1px rgba(184, 149, 89, 0.3) !important;
-  transform: translateX(2px);
+  border-color: var(--cthk-accent) !important;
+  border-left-color: var(--cthk-accent) !important;
+  color: #fff !important;
+  box-shadow: 0 0 0 1px var(--cthk-accent), 0 6px 24px rgba(196,69,55,.18) !important;
 }
-
+[class*="Choose_item"]:hover::after { transform: scaleX(1); }
+[class*="Choose_item"]:hover::before { background: rgba(196,69,55,.18); border-right-color: var(--cthk-accent); color: #fff; }
 [class*="Choose_item_disabled"] {
-  opacity: 0.35 !important;
-  color: var(--cthk-ink-dim) !important;
-  border-color: #2a2118 !important;
-  background: rgba(15, 11, 7, 0.6) !important;
+  opacity: .35 !important; color: var(--cthk-ink-dim) !important;
+  border-color: #2a2118 !important; background: rgba(15,11,7,.6) !important;
 }
+[class*="Choose_item_disabled"]:hover { box-shadow: none !important; }
 
-[class*="Choose_item_disabled"]:hover {
-  transform: none !important;
-  border-color: #2a2118 !important;
-  box-shadow: none !important;
+/* 选项逐张发牌入场 (只动位移, 即使动画被暂停也始终可见) */
+[class*="Choose_item"] { animation: cthkChoiceDeal .5s cubic-bezier(.2,.75,.2,1) both; }
+@keyframes cthkChoiceDeal { from { transform: translateY(16px); } to { transform: none; } }
+[class*="Choose_item"]:nth-child(1) { animation-delay: .06s; }
+[class*="Choose_item"]:nth-child(2) { animation-delay: .15s; }
+[class*="Choose_item"]:nth-child(3) { animation-delay: .24s; }
+[class*="Choose_item"]:nth-child(4) { animation-delay: .33s; }
+[class*="Choose_item"]:nth-child(5) { animation-delay: .42s; }
+[class*="Choose_item"]:nth-child(6) { animation-delay: .51s; }
+[class*="Choose_item"]:nth-child(n+7) { animation-delay: .6s; }
+
+/* ===== 章节卡 (intro, z-index 11) — CASE FILE 钢印 ===== */
+#introContainer {
+  background:
+    repeating-linear-gradient(0deg, transparent 0 3px, rgba(196,69,55,.025) 3px 4px),
+    radial-gradient(80% 80% at 50% 50%, #0c0a08, #000) !important;
 }
-
-/* ----- 标题界面 ----- */
-[class*="title_"] [class*="enter"] {
-  color: var(--cthk-amber) !important;
-  letter-spacing: 0.2em !important;
+/* 老胶片扫描线 + 暗角 (带极缓 flicker), 和噪点/结案页呼应 */
+#introContainer::after {
+  content: ''; position: absolute; inset: 0; z-index: 5; pointer-events: none;
+  background:
+    repeating-linear-gradient(0deg, rgba(0,0,0,0) 0 2px, rgba(0,0,0,.18) 3px, rgba(0,0,0,0) 4px),
+    radial-gradient(120% 90% at 50% 50%, transparent 55%, rgba(0,0,0,.5) 100%);
+  mix-blend-mode: multiply; opacity: .5;
+  animation: cthkChapterFlicker 4.5s steps(1) infinite;
 }
+@keyframes cthkChapterFlicker { 0%,96%,100% { opacity: .5; } 97% { opacity: .34; } 98% { opacity: .58; } }
 
-/* ----- 底部控制栏 ----- */
-[class*="bottomControlPanel"] {
-  filter: sepia(0.2) hue-rotate(-10deg) brightness(0.85);
-}
-
-/* ----- Backlog (历史回放) ----- */
+/* ===== 底部控制栏 / Backlog ===== */
+[class*="bottomControlPanel"] { filter: sepia(.15) hue-rotate(-6deg) brightness(.85); }
 [class*="backlog"] {
-  background: linear-gradient(
-    180deg,
-    rgba(15, 11, 7, 0.94) 0%,
-    rgba(8, 6, 4, 0.98) 100%
-  ) !important;
+  background: linear-gradient(180deg, rgba(15,11,7,.94), rgba(8,6,4,.98)) !important;
 }
-
 [class*="backlogItem"] {
-  border-bottom: 1px solid var(--cthk-border) !important;
-  color: var(--cthk-ink) !important;
+  border-bottom: 1px solid var(--cthk-border) !important; color: var(--cthk-ink) !important;
 }
 
-/* ----- 全局滚动条 ----- */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-::-webkit-scrollbar-track {
-  background: var(--cthk-paper);
-}
-::-webkit-scrollbar-thumb {
-  background: var(--cthk-border);
-  border-radius: 0;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--cthk-amber);
-}
+/* ===== 滚动条 ===== */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--cthk-paper); }
+::-webkit-scrollbar-thumb { background: var(--cthk-border); border-radius: 0; }
+::-webkit-scrollbar-thumb:hover { background: var(--cthk-accent); }
 
-/* ----- 微弱的画面颗粒感 (整个游戏舞台) -----
- * ★ z-index 必须 < WebGAL 内部元素 (introContainer=11, choose=~20, textbox=3),
- *   否则会盖住 intro 全屏卡导致玩家看不到章节卡 / 回顾页.
- * 这里用 z-index: 2, 仅高于背景图, 低于所有交互层. */
+/* ===== 油灯 vignette + 胶片噪点 (留黑即设计, z-index 2) ===== */
 [class*="stage_"]::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background-image: url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.08 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
-  mix-blend-mode: overlay;
-  opacity: 0.5;
-  z-index: 2;
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 2;
+  background-image: url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.09 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  mix-blend-mode: overlay; opacity: .5;
 }
-
-/* ----- 旁白发言者用斜体, 区分于角色对话 ----- */
-[class*="TextBox_showName"]:has(+ *) {
-  font-style: normal;
-}
-/* 当 nameTextBox 内容是"旁白"时, 减弱视觉权重 (这是 attribute-based hack, 后续可加 className) */

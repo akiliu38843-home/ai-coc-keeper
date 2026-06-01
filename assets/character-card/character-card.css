@@ -1,201 +1,119 @@
 /* ============================================================
- * AI-COC-Keeper · 角色卡浮动按钮 + Modal
- * 注入到 WebGAL dist/ 旁边, 不动 WebGAL 源码
- * z-index: 按钮 50 / modal 100, 低于 WebGAL intro (11) 之外的所有交互
+ * character-card.css ·《卷宗》方案 B — 探者档案浮动按钮 + modal
+ * 部署: 复制到 dist/game/character-card.css, post-build 注入 link
+ * 按钮 z-index 50 / modal 100 (游戏中显示, intro 时由 JS 隐藏, 不违反 ≤11 规则)
  * ========================================================== */
 
 .cthk-card-btn {
-  position: fixed;
-  bottom: 96px;
-  right: 24px;
-  z-index: 50;
+  position: fixed; bottom: 160px; right: 24px; z-index: 50;
   padding: 10px 18px;
-  background: linear-gradient(
-    180deg,
-    rgba(33, 26, 16, 0.94) 0%,
-    rgba(21, 17, 11, 0.98) 100%
-  );
-  border: 1px solid #3a2e1c;
-  border-radius: 2px;
-  color: #d8c9a6;
-  font-family: "Noto Serif SC", "Songti SC", "STSong", serif;
-  font-size: 15px;
-  letter-spacing: 0.08em;
-  cursor: pointer;
-  transition: all 0.25s ease;
-  box-shadow: inset 0 0 0 1px rgba(184, 149, 89, 0.08),
-              0 4px 12px rgba(0, 0, 0, 0.5);
-  user-select: none;
+  background: linear-gradient(180deg, rgba(20,16,12,.94), rgba(7,6,5,.98));
+  border: 1px solid rgba(207,198,180,.3); border-left: 3px solid #c44537;
+  border-radius: 0; color: #cfc6b4;
+  font-family: "Spline Sans Mono", ui-monospace, monospace;
+  font-size: 13px; letter-spacing: .14em; text-transform: uppercase;
+  cursor: pointer; transition: all .25s ease; user-select: none;
+  box-shadow: 0 4px 12px rgba(0,0,0,.5);
 }
+.cthk-card-btn:hover { border-color: #c44537; color: #fff; box-shadow: 0 0 0 1px #c44537; }
 
-.cthk-card-btn:hover {
-  border-color: #b89559;
-  color: #f4e8c8;
-  box-shadow: 0 0 12px rgba(184, 149, 89, 0.35),
-              inset 0 0 0 1px rgba(184, 149, 89, 0.3);
-  transform: translateX(-2px);
-}
-
-/* ----- modal 遮罩 ----- */
 .cthk-card-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  background: rgba(0, 0, 0, 0.78);
-  backdrop-filter: blur(3px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.3s ease;
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(0,0,0,.82); backdrop-filter: blur(3px);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity .3s ease;
 }
+.cthk-card-backdrop.open { opacity: 1; pointer-events: auto; }
 
-.cthk-card-backdrop.open {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-/* ----- modal 主面板 ----- */
 .cthk-card-modal {
-  width: min(640px, 90vw);
-  max-height: 86vh;
-  overflow-y: auto;
-  background: linear-gradient(180deg, #15110b 0%, #0a0805 100%);
-  border: 1px solid #3a2e1c;
-  border-radius: 2px;
-  padding: 28px 36px 36px;
-  color: #d8c9a6;
-  font-family: "Noto Serif SC", "Songti SC", "STSong", serif;
-  letter-spacing: 0.04em;
-  line-height: 1.7;
-  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.8),
-              inset 0 0 0 1px rgba(184, 149, 89, 0.15);
-  transform: translateY(8px);
-  opacity: 0;
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  width: min(640px, 90vw); max-height: 86vh; overflow-y: auto;
+  background: linear-gradient(180deg, #15110b, #0a0805);
+  border: 1px solid rgba(207,198,180,.18);
+  clip-path: polygon(0 0, calc(100% - 22px) 0, 100% 22px, 100% 100%, 0 100%);
+  padding: 28px 36px 36px; color: #cfc6b4;
+  font-family: "Noto Serif SC", "Songti SC", serif;
+  letter-spacing: .04em; line-height: 1.7;
+  box-shadow: 0 12px 48px rgba(0,0,0,.85), inset 0 0 0 1px rgba(207,198,180,.12);
+  transform: translateY(8px); opacity: 0;
+  transition: opacity .3s ease, transform .3s ease;
+}
+.cthk-card-backdrop.open .cthk-card-modal { opacity: 1; transform: none; }
+/* 内容级联浮入 (位移驱动, 暂停也可见) */
+.cthk-card-backdrop.open .cthk-card-modal > * { animation: cocCardRise .5s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes cocCardRise { from { transform: translateY(14px); } to { transform: none; } }
+.cthk-card-backdrop.open .cthk-card-modal > *:nth-child(1) { animation-delay: .04s; }
+.cthk-card-backdrop.open .cthk-card-modal > *:nth-child(2) { animation-delay: .10s; }
+.cthk-card-backdrop.open .cthk-card-modal > *:nth-child(3) { animation-delay: .16s; }
+.cthk-card-backdrop.open .cthk-card-modal > *:nth-child(4) { animation-delay: .22s; }
+.cthk-card-backdrop.open .cthk-card-modal > *:nth-child(5) { animation-delay: .28s; }
+.cthk-card-backdrop.open .cthk-card-modal > *:nth-child(n+6) { animation-delay: .34s; }
+@media (prefers-reduced-motion: reduce) {
+  .cthk-card-backdrop.open .cthk-card-modal > * { animation: none !important; }
 }
 
-.cthk-card-backdrop.open .cthk-card-modal {
-  opacity: 1;
-  transform: translateY(0);
-}
+.cthk-card-header { display: flex; align-items: baseline; justify-content: space-between;
+  margin-bottom: 18px; border-bottom: 1px solid rgba(207,198,180,.2); padding-bottom: 12px; }
+.cthk-card-title { color: #e0533f; font-family: "Spline Sans Mono", monospace;
+  font-size: 18px; letter-spacing: .12em; text-transform: uppercase; }
+.cthk-card-close { background: transparent; border: 1px solid rgba(207,198,180,.3);
+  color: #a89578; font-size: 18px; width: 30px; height: 30px; border-radius: 0; cursor: pointer; line-height: 1; }
+.cthk-card-close:hover { border-color: #c44537; color: #fff; }
 
-.cthk-card-header {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  margin-bottom: 18px;
-  border-bottom: 1px solid #3a2e1c;
-  padding-bottom: 12px;
-}
+.cthk-card-section { margin: 22px 0 0; }
+.cthk-card-sec-h { display: flex; align-items: center; gap: 12px; margin-bottom: 13px; }
+.cthk-card-sec-h .cc-t { font-family: "Spline Sans Mono", ui-monospace, monospace; font-size: 13px;
+  letter-spacing: .24em; text-transform: uppercase; color: #cfc6b4; white-space: nowrap; }
+.cthk-card-sec-h .cc-n { font-family: "Spline Sans Mono", ui-monospace, monospace; font-size: 11px;
+  letter-spacing: .1em; color: #c44537; }
+.cthk-card-sec-h .cc-ln { flex: 1; height: 1px; background: linear-gradient(90deg, #3a2e1c, transparent); }
 
-.cthk-card-title {
-  color: #b89559;
-  font-size: 20px;
-  letter-spacing: 0.12em;
-}
+.cthk-card-id-block { margin-bottom: 4px; }
+.cthk-card-kick { font-family: "Spline Sans Mono", ui-monospace, monospace; font-size: 11px;
+  letter-spacing: .22em; text-transform: uppercase; color: #c44537; opacity: .85; margin-bottom: 8px; }
+.cthk-card-id { font-size: 25px; color: #fff; font-weight: 600; letter-spacing: .03em; }
+.cthk-card-id small { font-size: .6em; color: #a89578; font-weight: 400; }
+.cthk-card-id-sub { font-family: "Spline Sans Mono", ui-monospace, monospace; font-size: 14px;
+  color: #a89578; letter-spacing: .12em; margin-top: 6px; }
 
-.cthk-card-close {
-  background: transparent;
-  border: 1px solid #3a2e1c;
-  color: #a89578;
-  font-size: 18px;
-  width: 30px;
-  height: 30px;
-  border-radius: 2px;
-  cursor: pointer;
-  line-height: 1;
-}
-.cthk-card-close:hover {
-  border-color: #b89559;
-  color: #f4e8c8;
-}
+/* 状态: HP/SAN 双联大牌 + 次要四格 */
+.cthk-card-vital { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+.cthk-card-vital .cc-big { border: 1px solid #3a2e1c; background: rgba(33,26,16,.4);
+  padding: 15px 18px; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.cthk-card-vital .cc-k { font-family: "Spline Sans Mono", ui-monospace, monospace; font-size: 11px;
+  letter-spacing: .16em; color: #a89578; text-transform: uppercase; }
+.cthk-card-vital .cc-v { font-family: "Spline Sans Mono", ui-monospace, monospace; font-size: 30px;
+  font-weight: 600; color: #fff; font-variant-numeric: tabular-nums; line-height: 1; }
+.cthk-card-vital .cc-big.hp .cc-v { color: #e08a72; }
+.cthk-card-vital .cc-big.san .cc-v { color: #d9b878; }
+.cthk-card-minor { display: grid; grid-template-columns: repeat(4,1fr); border: 1px solid #3a2e1c; background: rgba(33,26,16,.3); }
+.cthk-card-minor .cc-cell { padding: 11px 4px; text-align: center; display: flex; flex-direction: column; gap: 4px;
+  border-right: 1px solid rgba(58,46,28,.5); min-width: 0; }
+.cthk-card-minor .cc-cell:last-child { border-right: none; }
+.cthk-card-minor .cc-k { font-family: "Spline Sans Mono", ui-monospace, monospace; font-size: 11px; letter-spacing: .08em; color: #a89578; }
+.cthk-card-minor .cc-v { font-family: "Spline Sans Mono", ui-monospace, monospace; font-size: 17px; color: #cfc6b4; font-variant-numeric: tabular-nums; }
 
-/* ----- 各区块 ----- */
-.cthk-card-section {
-  margin: 20px 0;
-}
-.cthk-card-section h3 {
-  color: #b89559;
-  font-size: 14px;
-  letter-spacing: 0.18em;
-  margin: 0 0 10px;
-  font-weight: normal;
-  text-transform: uppercase;
-}
+/* 属性: 一体化网格 */
+.cthk-card-attrs { display: grid; grid-template-columns: repeat(4,1fr);
+  border: 1px solid #3a2e1c; border-right: none; border-bottom: none; background: rgba(20,16,10,.5); }
+.cthk-card-attrs .cc-cell { padding: 14px 4px; text-align: center; display: flex; flex-direction: column; gap: 6px; min-width: 0;
+  border-right: 1px solid rgba(58,46,28,.55); border-bottom: 1px solid rgba(58,46,28,.55); }
+.cthk-card-attrs .cc-k { font-family: "Spline Sans Mono", ui-monospace, monospace; font-size: 11px; letter-spacing: .16em; color: #a89578; }
+.cthk-card-attrs .cc-v { font-family: "Spline Sans Mono", ui-monospace, monospace; font-size: 24px; font-weight: 600;
+  color: #fff; font-variant-numeric: tabular-nums; line-height: 1; }
+.cthk-card-attrs .cc-cell.hi .cc-v { color: #d9b878; }
 
-.cthk-card-id {
-  font-size: 18px;
-  color: #f4e8c8;
-}
-.cthk-card-id-sub {
-  font-size: 14px;
-  color: #a89578;
-  margin-top: 4px;
-}
+/* 主要技能: 双栏 */
+.cthk-card-skills { display: grid; grid-template-columns: 1fr 1fr; gap: 0 26px; }
+.cthk-card-skills .cc-srow { display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+  padding: 9px 0; border-bottom: 1px solid rgba(58,46,28,.4); min-width: 0; }
+.cthk-card-skills .cc-sk-n { color: #a89578; font-size: 15px; }
+.cthk-card-skills .cc-sk-v { font-family: "Spline Sans Mono", ui-monospace, monospace; font-size: 16px; color: #fff; font-variant-numeric: tabular-nums; }
 
-/* 状态数值 (HP / 心智度 / MP / 幸运) */
-.cthk-card-stats {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 8px 24px;
-}
-.cthk-card-stat {
-  display: flex;
-  justify-content: space-between;
-  padding: 6px 0;
-  border-bottom: 1px dashed rgba(58, 46, 28, 0.5);
-}
-.cthk-card-stat-name { color: #a89578; }
-.cthk-card-stat-val  { color: #d8c9a6; font-variant-numeric: tabular-nums; }
+.cthk-card-empty { text-align: center; color: #a89578; padding: 32px 0; font-style: italic; }
 
-/* 8 项属性 */
-.cthk-card-attrs {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px 12px;
-}
-.cthk-card-attr {
-  display: flex;
-  justify-content: space-between;
-  padding: 4px 8px;
-  background: rgba(33, 26, 16, 0.5);
-  border: 1px solid rgba(58, 46, 28, 0.6);
-  border-radius: 2px;
-}
-.cthk-card-attr-name { color: #a89578; font-size: 12px; letter-spacing: 0.15em; }
-.cthk-card-attr-val  { color: #d8c9a6; font-variant-numeric: tabular-nums; font-weight: 600; }
-
-/* 技能列表 */
-.cthk-card-skills {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 4px 24px;
-}
-.cthk-card-skill {
-  display: flex;
-  justify-content: space-between;
-  padding: 4px 0;
-  border-bottom: 1px dashed rgba(58, 46, 28, 0.3);
-  font-size: 14px;
-}
-.cthk-card-skill-name { color: #a89578; }
-.cthk-card-skill-val  { color: #d8c9a6; font-variant-numeric: tabular-nums; }
-
-/* 角色卡为空时的 fallback */
-.cthk-card-empty {
-  text-align: center;
-  color: #a89578;
-  padding: 32px 0;
-  font-style: italic;
-}
-
-/* 移动端窄屏 */
 @media (max-width: 480px) {
-  .cthk-card-btn { bottom: 80px; right: 12px; padding: 8px 14px; font-size: 13px; }
+  .cthk-card-btn { bottom: 80px; right: 12px; padding: 8px 14px; font-size: 11px; }
   .cthk-card-modal { padding: 20px 22px 28px; }
-  .cthk-card-stats { grid-template-columns: 1fr; }
-  .cthk-card-attrs { grid-template-columns: repeat(2, 1fr); }
   .cthk-card-skills { grid-template-columns: 1fr; }
+  .cthk-card-attrs { grid-template-columns: repeat(2,1fr); }
 }

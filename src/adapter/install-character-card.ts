@@ -81,40 +81,21 @@ export async function installCharacterCard(
     return;
   }
 
-  // 1) 拷 css/js 到 public/game/ (下次 yarn build 自然进 dist)
-  await copyFile(srcCss, join(publicGame, 'character-card.css'));
-  await copyFile(srcJs,  join(publicGame, 'character-card.js'));
-
-  // 2) 如果当前已经 build 过 dist/, 同时拷一份过去 (热更新)
+  // B 路 (2026-06): 不再拷 css/js (已搬进 WebGAL src)
+  void srcCss; void srcJs;
   const distExists = await fileExists(join(projectRoot, 'external/WebGAL/packages/webgal/dist'));
-  if (distExists) {
-    await copyFile(srcCss, join(distGame, 'character-card.css'));
-    await copyFile(srcJs,  join(distGame, 'character-card.js'));
-  }
 
-  // 3) 写 character.json (public 和 dist 同步)
+  // 3) 写 character.json (public 和 dist 同步) -- React 组件 fetch 读这份
   if (charData) {
     const jsonStr = JSON.stringify(charData, null, 2);
     await writeFile(join(publicGame, 'character.json'), jsonStr, 'utf-8');
     if (distExists) await writeFile(join(distGame, 'character.json'), jsonStr, 'utf-8');
   }
 
-  // 4) post-process dist/index.html: 在 </body> 前注入 link + script (幂等)
-  if (await fileExists(distHtml)) {
-    let html = await readFile(distHtml, 'utf-8');
-    if (!html.includes(INJECTION_MARKER)) {
-      const insertion = [
-        `\n${INJECTION_MARKER}`,
-        `<link rel="stylesheet" href="/game/character-card.css">`,
-        `<script src="/game/character-card.js" defer></script>\n`,
-      ].join('\n');
-      html = html.replace('</body>', `${insertion}</body>`);
-      await writeFile(distHtml, html, 'utf-8');
-      console.log(`📜 角色卡 已注入 dist/index.html`);
-    } else {
-      console.log(`📜 角色卡 dist/index.html 已含注入 (跳过)`);
-    }
-  }
+  // B 路 (2026-06): 角色卡已搬进 WebGAL 内部 React 组件 (CharacterCard.tsx),
+  // 不再外挂注入 <link>/<script>. 只保留 character.json 文件同步.
+  void distHtml; // keep var for legacy compat checks
+  void INJECTION_MARKER;
 
-  console.log(`📜 角色卡资源 已写入 public/game/ ${distExists ? '+ dist/game/' : ''}`);
+  console.log(`📜 character.json 已写入 public/game/ ${distExists ? '+ dist/game/' : ''}`);
 }

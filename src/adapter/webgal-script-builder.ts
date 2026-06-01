@@ -86,8 +86,9 @@ const MAX_PAGE_LEN = 30;
  */
 export function splitIntoPages(text: string, maxLen: number = MAX_PAGE_LEN): string[] {
   if (!text) return [];
+  // 句子断点: 中文 / 英文句末标点, 或英文 "." 后跟空白 (不切小数: \d. 不算)
   const sentences = text
-    .split(/(?<=[。！？!?])(?=\s*\S)/)
+    .split(/(?<=[。！？!?])(?=\s*\S)|(?<=[^\d]\.)(?=\s+\S)/)
     .map((s) => s.trim())
     .filter((s) => s.length > 0);
   const rawPages: string[] = [];
@@ -196,6 +197,13 @@ export interface InSceneAction {
   label: string;
   /** 点选后 AI 叙事 */
   resultNarrate: string;
+  /**
+   * V3 (探索意义化): 点选探索后自动 set 的 flag.
+   * builder 在 resultNarrate 后插一行 `setVar:k=v;` 给 WebGAL 状态机用.
+   *
+   * 例: 仓库探索找到手枪 → sets={hasGun: true} → 后续 boss 战 exit.requires 检 hasGun.
+   */
+  sets?: Record<string, boolean | number | string>;
 }
 
 export interface SceneSectionOptions {
@@ -339,8 +347,11 @@ export function sceneToWebgalSection(
   }
 
   // 场景主叙事
+  // 优先级: opts.actions (LLM 生成) > scene.originalText 节选 (原作风味) > scene.description (作者笔记, 最丑)
+  // scene.description 含 KP 术语 / 内部 hint, 不适合直接给玩家看, 仅作最末兜底.
   if (!opts.actions || opts.actions.length === 0) {
-    lines.push(...narrateTextToLines(scene.description));
+    const placeholder = pickPlaceholderNarrate(scene);
+    lines.push(...narrateTextToLines(placeholder));
   } else {
     lines.push(...opts.actions.flatMap((a) => actionToWebgalLines(a)));
   }
@@ -371,47 +382,95 @@ export function sceneToWebgalSection(
     return lines.join('\n');
   }
 
-  // 选项菜单 label（行动后 loop 回这里）
-  const choicesLabel = pfx(`${scene.id}_choices`, p);
+  // ─── V3 (UX): hub-spoke 2 层菜单 (仿 80 Days / Heaven's Vault) ──
+  // 当场景同时有 inSceneActions (探索/装饰类, loop) + (exits 或 terminalExit) (推进类),
+  // 拆 3 个 label: hub → 玩家先选 "探索这里" / "继续前进", 各自展开子菜单.
+  // 否则 (只有 exits 或只有 inSceneActions) 走老的单层 choose.
+  const hasAdvance = (scene.exits && scene.exits.length > 0) || wantTerminalBtn;
+  const useTieredMenu = hasInScene && hasAdvance;
+
+  // label 命名:
+  //   hub      = ${id}_choices    (沿用老名兼容 in-scene action 回跳的目标)
+  //   explore  = ${id}_explore    (探索子菜单, in-scene actions 在此 loop)
+  //   advance  = ${id}_advance    (推进子菜单, exits + terminalExit)
+  const hubLabel = pfx(`${scene.id}_choices`, p);
+  const exploreLabel = pfx(`${scene.id}_explore`, p);
+  const advanceLabel = pfx(`${scene.id}_advance`, p);
+  // in-scene action 跳回的目标 (tiered 时是 explore, 单层时是 hub)
+  const inSceneLoopBack = useTieredMenu ? exploreLabel : hubLabel;
+
   lines.push('');
-  lines.push(`label:${choicesLabel};`);
+  lines.push(`label:${hubLabel};`);
 
-  // 拼 choose 命令：先 in-scene actions，后 exits
-  // 所有按钮 label 都过 truncateChoiceLabel — WebGAL 按钮宽度有限不能溢出.
-  const choiceParts: string[] = [];
-  if (opts.inSceneActions) {
-    opts.inSceneActions.forEach((a, i) => {
+  if (useTieredMenu) {
+    // ─── hub: 2 个按钮 ───
+    lines.push(`choose:· 探索这里 ·:${exploreLabel}|▸ 继续前进:${advanceLabel};`);
+
+    // ─── explore 子菜单 ───
+    lines.push('');
+    lines.push(`label:${exploreLabel};`);
+    const exploreParts: string[] = [];
+    opts.inSceneActions!.forEach((a, i) => {
       const safeLabel = escapeForWebgal(truncateChoiceLabel(a.label));
-      choiceParts.push(`${safeLabel}:${pfx(inSceneActionLabelName(scene.id, i), p)}`);
+      exploreParts.push(`${safeLabel}:${pfx(inSceneActionLabelName(scene.id, i), p)}`);
     });
-  }
-  if (scene.exits) {
-    scene.exits.forEach((e, i) => {
-      const target = opts.transitionActions?.has(i)
-        ? pfx(transitionLabelName(scene.id, i), p)
-        : pfx(e.toScene, p);
-      const safeLabel = escapeForWebgal(truncateChoiceLabel(e.condition));
-      // V2 (branching L2): 如果 exit 有 requires, 用 WebGAL choose 选项级条件 (cond)->text:label
-      // 例: exit.requires = { hasKey: true } → "(hasKey==true)->开锁:scene_x"
-      const cond = renderFlagRequires(e.requires);
-      choiceParts.push(`${cond}${safeLabel}:${target}`);
-    });
-  }
-  // terminal scene 末尾追加 "结束" 按钮 → 跳到 recap/launcher (调用方决定 target).
-  // 注意: terminalExit.target 不过 pfx (调用方传的就是最终 label, 跨 prefix 全局可达).
-  if (wantTerminalBtn && opts.terminalExit) {
-    const safeLabel = escapeForWebgal(truncateChoiceLabel(opts.terminalExit.buttonLabel));
-    choiceParts.push(`${safeLabel}:${opts.terminalExit.target}`);
-  }
-  lines.push(`choose:${choiceParts.join('|')};`);
+    exploreParts.push(`↩ 返回:${hubLabel}`);
+    lines.push(`choose:${exploreParts.join('|')};`);
 
-  // in-scene action labels（loop back）
+    // ─── advance 子菜单 ───
+    lines.push('');
+    lines.push(`label:${advanceLabel};`);
+    const advanceParts: string[] = [];
+    if (scene.exits) {
+      scene.exits.forEach((e, i) => {
+        const target = opts.transitionActions?.has(i)
+          ? pfx(transitionLabelName(scene.id, i), p)
+          : pfx(e.toScene, p);
+        const safeLabel = escapeForWebgal(truncateChoiceLabel(e.condition));
+        const cond = renderFlagRequires(e.requires);
+        advanceParts.push(`${cond}${safeLabel}:${target}`);
+      });
+    }
+    if (wantTerminalBtn && opts.terminalExit) {
+      const safeLabel = escapeForWebgal(truncateChoiceLabel(opts.terminalExit.buttonLabel));
+      advanceParts.push(`${safeLabel}:${opts.terminalExit.target}`);
+    }
+    lines.push(`choose:${advanceParts.join('|')};`);
+  } else {
+    // ─── 单层 (只有 exits 或只有 inSceneActions) ───
+    const choiceParts: string[] = [];
+    if (opts.inSceneActions) {
+      opts.inSceneActions.forEach((a, i) => {
+        const safeLabel = escapeForWebgal(truncateChoiceLabel(a.label));
+        choiceParts.push(`${safeLabel}:${pfx(inSceneActionLabelName(scene.id, i), p)}`);
+      });
+    }
+    if (scene.exits) {
+      scene.exits.forEach((e, i) => {
+        const target = opts.transitionActions?.has(i)
+          ? pfx(transitionLabelName(scene.id, i), p)
+          : pfx(e.toScene, p);
+        const safeLabel = escapeForWebgal(truncateChoiceLabel(e.condition));
+        const cond = renderFlagRequires(e.requires);
+        choiceParts.push(`${cond}${safeLabel}:${target}`);
+      });
+    }
+    if (wantTerminalBtn && opts.terminalExit) {
+      const safeLabel = escapeForWebgal(truncateChoiceLabel(opts.terminalExit.buttonLabel));
+      choiceParts.push(`${safeLabel}:${opts.terminalExit.target}`);
+    }
+    lines.push(`choose:${choiceParts.join('|')};`);
+  }
+
+  // in-scene action labels: 走完 resultNarrate 跳回 explore (tiered) 或 hub (单层)
+  // V3 (探索意义化): 如果 action.sets 有 flag, 在 resultNarrate 后插 setVar 让 WebGAL 状态同步.
   if (opts.inSceneActions) {
     for (const [i, action] of opts.inSceneActions.entries()) {
       lines.push('');
       lines.push(`label:${pfx(inSceneActionLabelName(scene.id, i), p)};`);
       lines.push(...narrateTextToLines(action.resultNarrate));
-      lines.push(`jumpLabel:${choicesLabel};`);
+      lines.push(...renderFlagSets(action.sets));
+      lines.push(`jumpLabel:${inSceneLoopBack};`);
     }
   }
 
@@ -455,6 +514,27 @@ function renderFlagRequires(requires?: Record<string, boolean | number | string>
 }
 
 /**
+ * 选 build:test (无 LLM) 时显示给玩家的占位旁白.
+ * - 优先用 originalText 节选 (原作风味, 最像剧情)
+ * - 没 originalText 才用 description (作者笔记, 可能含 KP 术语)
+ */
+function pickPlaceholderNarrate(scene: Scene): string {
+  if (!scene.originalText) return scene.description;
+  // 按句号切分, 凑前 N 个完整句子, 控制在 ~300 字以内 (3-5 句)
+  const sentences = scene.originalText.split(/(?<=[。！？])/);
+  let out = '';
+  for (const s of sentences) {
+    const trimmed = s.trim();
+    if (!trimmed) continue;
+    if (out.length + trimmed.length > 300) break;
+    out += trimmed;
+  }
+  if (out.length === 0) return scene.originalText.slice(0, 300);
+  if (out.length < scene.originalText.length) out += '...';
+  return out;
+}
+
+/**
  * V2 (branching L2): 把 exit.sets 渲染成 setVar 指令组.
  *   { hasKey: true, choseToFight: true }  →  ["setVar:hasKey=true;", "setVar:choseToFight=true;"]
  */
@@ -485,13 +565,17 @@ function transitionLabelName(fromSceneId: string, exitIndex: number): string {
  */
 function extractGoalFromAuthorNotes(notes: string | undefined): string[] | null {
   if (!notes || notes.length < 20) return null;
-  // 按 。/.！?  断句, 取前 2-3 句
+  // 按 句末标点 断句: 中文 。！？/ 英文 .!? (英文 . 仅在后接空白时算句末, 防小数误切)
   const sentences = notes
-    .split(/[。！？!?]\s*/)
+    .split(/(?<=[。！？!?])\s*|(?<=[^\d]\.)\s+/)
     .map((s) => s.trim())
     .filter((s) => s.length > 0)
     .slice(0, 3)
-    .map((s) => (s.endsWith('。') || s.endsWith('.') ? s : s + '。'));
+    .map((s) => {
+      // 截断单句过长的, 不让 intro 卡撑爆
+      if (s.length > 50) s = s.slice(0, 48) + '…';
+      return (s.endsWith('。') || s.endsWith('.')) ? s : s + '。';
+    });
   if (sentences.length === 0) return null;
   return sentences;
 }

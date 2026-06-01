@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>探索 vs 推进 · 选项设计调研</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --ink:        #2a241a;
+    --ink-dim:    #6b5d44;
+    --ink-faint:  #a89578;
+    --paper:      #f7f1e1;
+    --paper-2:    #efe6cf;
+    --paper-3:    #e8dcc2;
+    --amber:      #b89559;
+    --amber-bri:  #d6b076;
+    --blood:      #8b2c1f;
+    --blood-bri:  #c44537;
+    --border:     #d6c8a6;
+    --good:       #4a6b3d;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: "Noto Serif SC","Songti SC","Source Han Serif","Hiragino Mincho ProN",serif;
+    line-height: 1.75; padding: 32px 20px 80px;
+  }
+  main { max-width: 1180px; margin: 0 auto; }
+  header.top { border-bottom: 2px solid var(--border); padding-bottom: 18px; margin-bottom: 28px; }
+  h1 { font-size: 28px; margin: 0 0 6px; }
+  .lede { color: var(--ink-dim); font-size: 15px; max-width: 900px; }
+
+  .toc {
+    background: var(--paper-2); border: 1px solid var(--border);
+    border-left: 4px solid var(--amber); padding: 14px 20px;
+    margin-bottom: 28px; border-radius: 2px;
+  }
+  .toc h3 { margin: 0 0 8px; font-size: 13px; color: var(--blood); letter-spacing: 0.18em; text-transform: uppercase; }
+  .toc ol { margin: 0; padding-left: 22px; font-size: 14px; }
+  .toc a { color: var(--ink); text-decoration: none; }
+  .toc a:hover { color: var(--blood); text-decoration: underline; }
+
+  h2.section {
+    font-size: 20px; color: var(--blood);
+    border-left: 4px solid var(--amber); padding-left: 12px;
+    margin: 36px 0 16px;
+  }
+
+  table {
+    width: 100%; border-collapse: collapse; margin: 12px 0;
+    font-size: 13.5px;
+  }
+  th, td {
+    border: 1px solid var(--border); padding: 9px 12px;
+    text-align: left; vertical-align: top;
+  }
+  th { background: var(--paper-3); color: var(--ink); font-weight: 600; font-size: 12.5px; letter-spacing: 0.05em; }
+  td.ok { color: var(--good); }
+  td.no { color: var(--blood); }
+  td.mid { color: var(--ink-dim); }
+
+  .card {
+    background: var(--paper-2); border: 1px solid var(--border);
+    border-radius: 3px; padding: 18px 24px; margin-bottom: 14px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+  }
+  .card h4 {
+    margin: 0 0 8px; color: var(--amber); font-size: 14px;
+    letter-spacing: 0.12em; text-transform: uppercase;
+  }
+  .card .meta { color: var(--ink-faint); font-size: 12px; margin-bottom: 8px; }
+
+  .pattern-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+  }
+  @media (max-width: 720px) { .pattern-grid { grid-template-columns: 1fr; } }
+
+  .pill {
+    display: inline-block; padding: 2px 10px;
+    border-radius: 12px; font-size: 11px;
+    border: 1px solid var(--border); margin-right: 4px;
+    background: var(--paper-3); color: var(--ink-dim);
+  }
+  .pill.good { background: #d4e2cf; color: var(--good); border-color: #93b384; }
+  .pill.bad { background: #efd3cd; color: var(--blood); border-color: #d09a8e; }
+  .pill.mid { background: #f0e3c0; color: #856a1f; border-color: #c8aa5e; }
+
+  .verdict {
+    background: var(--paper-2); border: 2px solid var(--amber);
+    border-left: 6px solid var(--amber); padding: 18px 24px;
+    margin: 24px 0; border-radius: 2px;
+  }
+  .verdict h3 {
+    margin-top: 0; color: var(--blood);
+    letter-spacing: 0.12em; text-transform: uppercase; font-size: 14px;
+  }
+
+  .demo {
+    background: #15110b; color: #d8c9a6; padding: 14px 18px;
+    border-radius: 4px; font-family: monospace; font-size: 13px;
+    margin: 10px 0; line-height: 1.6;
+  }
+  .demo .lbl { color: #b89559; }
+  .demo .sep { color: #6b5d44; }
+  .demo .grp { color: #a89578; font-size: 11px; letter-spacing: 0.1em; }
+
+  code {
+    background: var(--paper); padding: 1px 6px; border-radius: 2px;
+    font-family: "SF Mono","Menlo",monospace; font-size: 12.5px;
+    color: var(--blood);
+  }
+
+  .picker {
+    background: var(--paper-2); border: 1px solid var(--border);
+    padding: 22px 26px; margin: 26px 0; border-radius: 3px;
+  }
+  .picker h3 {
+    margin: 0 0 14px; color: var(--blood); font-size: 14px;
+    letter-spacing: 0.15em; text-transform: uppercase;
+  }
+  .pick-item {
+    display: block; padding: 12px 16px; margin: 6px 0;
+    background: var(--paper); border: 1px solid var(--border);
+    border-left: 4px solid var(--ink-faint);
+    border-radius: 2px; cursor: pointer; transition: all 0.2s ease;
+    font-size: 14px;
+  }
+  .pick-item:hover { background: var(--paper-3); border-left-color: var(--amber); }
+  .pick-item.selected {
+    background: var(--paper-3); border-left-color: var(--amber);
+    box-shadow: inset 0 0 0 1px var(--amber);
+  }
+  .pick-item .name { color: var(--ink); font-weight: 600; margin-bottom: 4px; }
+  .pick-item .why { color: var(--ink-dim); font-size: 12.5px; }
+
+  .copy-btn {
+    background: var(--amber); border: none;
+    color: #fff; padding: 10px 18px; border-radius: 2px;
+    font-family: inherit; font-size: 13px; cursor: pointer;
+    margin: 12px 0; transition: all 0.2s ease;
+  }
+  .copy-btn:hover { background: var(--blood); }
+  .copy-btn:disabled { background: var(--ink-faint); cursor: not-allowed; }
+
+  footer {
+    margin-top: 40px; padding-top: 18px;
+    border-top: 1px solid var(--border);
+    color: var(--ink-dim); font-size: 13px; text-align: center;
+  }
+</style>
+</head>
+<body>
+<main>
+
+<header class="top">
+  <h1>探索 vs 推进 · 选项设计调研</h1>
+  <p class="lede">
+    问题: 我们目前把 4 个探索动作 (loop 回菜单, 装饰性数值) 和 2-3 个真分支 exit (推剧情设 flag) 塞同一个 choose 菜单, 玩家看不出区别. 调研业界 8 作品 + 6 个主流设计模式, 出 top 2 推荐.
+  </p>
+</header>
+
+<div class="toc">
+  <h3>目录</h3>
+  <ol>
+    <li><a href="#a">A · 业界 8 个标杆作品扫描</a></li>
+    <li><a href="#b">B · 6 个主流设计模式</a></li>
+    <li><a href="#c">C · AI 生成式范式的特殊性 (AI Dungeon)</a></li>
+    <li><a href="#d">D · top 2 推荐 + 1 个备胎</a></li>
+    <li><a href="#e">E · 你拍板</a></li>
+  </ol>
+</div>
+
+<!-- ========== A · 业界扫描 ========== -->
+<h2 class="section" id="a">A · 业界 8 个标杆作品扫描</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>作品</th>
+      <th>探索 vs 推进 怎么区分</th>
+      <th>核心机制</th>
+      <th>对我们启发</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Disco Elysium</strong></td>
+      <td>都在对话里, <strong>探索 = 被动技能"声音"</strong>插入对话用斜体, 推进 = 玩家选项</td>
+      <td>24 个技能, 主动检定 (掷骰) + 被动检定 (悄悄过). 探索影响后期检定难度</td>
+      <td>视觉区分 (斜体/正体) + 探索"喂"技能</td>
+    </tr>
+    <tr>
+      <td><strong>Sherlock Holmes: Crimes &amp; Punishments</strong></td>
+      <td><strong>2 个独立 UI 模式</strong>: 走动+捡线索 (探索) vs 三角键打开 Deduction Space (推理网络) vs 案宗</td>
+      <td>线索连成 mind palace 节点图. 全部线索收齐 → "锁定凶手" commit choice</td>
+      <td>清晰的 mode toggle, 真心硬核</td>
+    </tr>
+    <tr>
+      <td><strong>80 Days (inkle)</strong></td>
+      <td><strong>hub-spoke</strong>: 在城市里 4-6 个交互 loop 回 hub, 底部固定 "离开此地" 推进</td>
+      <td>城市间路径选择是真分支 (推进), 城市内对话是装饰探索</td>
+      <td>★ 我们 V2 的 research_hub 就是这模式</td>
+    </tr>
+    <tr>
+      <td><strong>Roadwarden</strong></td>
+      <td>同菜单不分模式, <strong>文字本身做区分</strong>: "走过去看看" (探索) vs "继续上路" (推进) — 语义清楚</td>
+      <td>探索本身有时间成本 (一格地图 = 一天) 和 trust 变量影响</td>
+      <td>语义清晰 ≥ 视觉区分</td>
+    </tr>
+    <tr>
+      <td><strong>Choice of Games (商业)</strong></td>
+      <td><strong>没有探索动作</strong>, 每个选择都是推进. 纯 CYOA 路线</td>
+      <td>每章 1-2 个选择, 设几十个变量, 最终结局综合判定</td>
+      <td>简洁但失去 TRPG 探索感</td>
+    </tr>
+    <tr>
+      <td><strong>Alone Against the Flames (Chaosium 1人 COC)</strong></td>
+      <td><strong>没有探索动作</strong>, 270 段, 每段 2-3 选项都是推进, 技能检定决定下一段</td>
+      <td>线性 CYOA + 骰子 + skill check 分支</td>
+      <td>纯 CYOA, 不需要"探索 vs 推进"区分</td>
+    </tr>
+    <tr>
+      <td><strong>Sound Novel (钟楼/街/恐怖の窒/かまいたち)</strong></td>
+      <td><strong>没有探索动作</strong>, 纯叙事 + 关键选项. 主线+分支</td>
+      <td>少选择 (一本 10-30 个) 但每个都是 commit, 多结局</td>
+      <td>简洁极致, 玩家不需要学规则</td>
+    </tr>
+    <tr>
+      <td><strong>Heaven's Vault (inkle)</strong></td>
+      <td><strong>3 层菜单</strong>: 探索 (走+点物件) vs 对话 (选问题/回答) vs 翻译古文字 (puzzle)</td>
+      <td>世界探索 → 拼凑线索 → 推动叙事</td>
+      <td>mode 分得很清, 适合长游戏</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ========== B · 设计模式 ========== -->
+<h2 class="section" id="b">B · 6 个主流设计模式 + 优缺点</h2>
+
+<div class="pattern-grid">
+
+  <div class="card">
+    <h4>模式 1 · 全砍 (CYOA)</h4>
+    <div class="meta">代表: AAtF / Choice of Games / Sound Novel</div>
+    <p>没有探索动作, 每选项都推进. 一切是 commit.</p>
+    <p><span class="pill good">体验最干净</span> <span class="pill good">实现 5 min</span></p>
+    <p><span class="pill bad">失去 TRPG 探索感</span> <span class="pill bad">数值/检定/badge 砍掉</span></p>
+  </div>
+
+  <div class="card">
+    <h4>模式 2 · 视觉前缀分类</h4>
+    <div class="meta">代表: Roadwarden 文本风格 / 部分 VN</div>
+    <p>同菜单, 探索动作前缀 <code>· 探索 ·</code> 或 <code>👁️</code>, 推进前缀 <code>→</code> 或 <code>▸</code></p>
+    <div class="demo">
+      <span class="grp">· 探索 ·</span><br>
+      <span class="lbl">· 搜口袋</span><br>
+      <span class="lbl">· 翻教义</span><br>
+      <span class="lbl">· 偷听门外</span><br>
+      <span class="grp">▸ 推进 ▸</span><br>
+      <span class="lbl">▸ 穿防护服探索</span><br>
+      <span class="lbl">▸ 不穿, 速度优先</span>
+    </div>
+    <p><span class="pill good">实现 10 min</span> <span class="pill good">学习 0 秒</span></p>
+    <p><span class="pill mid">仍堆一坨, 8+ 选项时混</span></p>
+  </div>
+
+  <div class="card">
+    <h4>模式 3 · hub-spoke (2 层 toggle)</h4>
+    <div class="meta">代表: 80 Days / Heaven's Vault / Sherlock Holmes</div>
+    <p>主选只 2 个 ("探索这里" / "继续前进"), 点 → 显子菜单</p>
+    <div class="demo">
+      <span class="lbl">[ 探索这里 ]</span> <span class="sep">→ 进 4 个探索动作 (loop)</span><br>
+      <span class="lbl">[ 继续前进 ]</span> <span class="sep">→ 进 2-3 个 exit 选项</span>
+    </div>
+    <p><span class="pill good">最清晰, 模式分明</span> <span class="pill good">仿 ADV galgame</span></p>
+    <p><span class="pill mid">多 1 次点击</span> <span class="pill mid">需新 sub-scene</span></p>
+  </div>
+
+  <div class="card">
+    <h4>模式 4 · 探索-检定融合 (Disco Elysium 范式)</h4>
+    <div class="meta">代表: Disco Elysium</div>
+    <p>探索动作 = 技能"声音"自动插入 narrate (斜体), 不是独立选项. 玩家只选推进</p>
+    <p><span class="pill good">叙事浑然一体</span> <span class="pill good">沉浸感最强</span></p>
+    <p><span class="pill bad">实现 1+ 周</span> <span class="pill bad">需大改 LLM prompt + builder</span></p>
+  </div>
+
+  <div class="card">
+    <h4>模式 5 · 探索独立 mode</h4>
+    <div class="meta">代表: Sherlock Holmes Deduction Space</div>
+    <p>底部加按钮 "调查模式" 切换. 调查模式下显探索动作, 默认下显推进</p>
+    <p><span class="pill good">模式分明</span> <span class="pill bad">需改 WebGAL 注入</span></p>
+    <p><span class="pill bad">玩家要学操作</span></p>
+  </div>
+
+  <div class="card">
+    <h4>模式 6 · 探索"标注"让它有意义</h4>
+    <div class="meta">代表: TRPG 跑团圈 / Roadwarden / 80 Days</div>
+    <p>不区分 UI, 但让所有探索动作 <strong>设 flag</strong> (拿到 key/线索/弹药/SAN). 探索就是真选择, 跟推进同等重要</p>
+    <p><span class="pill good">最贴跑团本意</span> <span class="pill good">玩家"探索值得"</span></p>
+    <p><span class="pill bad">每 action 要手工标 flag</span> <span class="pill bad">scenarios 工作量大</span></p>
+  </div>
+
+</div>
+
+<!-- ========== C · AI 范式 ========== -->
+<h2 class="section" id="c">C · AI 生成式范式 (AI Dungeon)</h2>
+
+<div class="card">
+  <h4>AI Dungeon 的 Do / Say / Story 三模式</h4>
+  <p>玩家自己切换输入模式. <code>Do</code> = 做动作 (探索/战斗), <code>Say</code> = 说话, <code>Story</code> = 替 AI 写一段叙事推进剧情.</p>
+  <p>本质上让玩家承担"我现在是探索还是推进"的决策 — 没有菜单, 用自然语言.</p>
+  <p><strong>不适合我们</strong>: 我们做的是有作者剧本的改编, 不是开放沙盒. 但 Story 模式启发: <em>玩家可以"放弃决策让 AI 推一段"</em>, 在节奏控制上可借鉴.</p>
+</div>
+
+<!-- ========== D · top 2 推荐 ========== -->
+<h2 class="section" id="d">D · 我推荐 top 2 + 1 备胎</h2>
+
+<div class="verdict">
+  <h3>★ top 1 · 模式 2 + 模式 6 组合 (前缀 + 探索有意义)</h3>
+  <p>
+    <strong>视觉</strong>: 给探索动作加 <code>· 探索 ·</code> 前缀, exit 加 <code>▸</code> 或 <code>→</code> 前缀.
+    探索动作分组放上, exit 放下. 玩家一眼分清.
+  </p>
+  <p>
+    <strong>意义</strong>: scenarios JSON 给每个 in-scene action 手工标注 <code>sets</code> 字段 (跟 exit 一样支持 flag). 让"搜口袋"真的设 <code>foundKey=true</code>, 后期场景能用.
+  </p>
+  <p>
+    <strong>工作量</strong>: 视觉前缀 30 min + kohaku scenarios 加 sets 字段 2-3 h + builder 支持 inSceneAction.sets 1 h ≈ <strong>半天</strong>.
+  </p>
+  <p>
+    <strong>为啥推荐</strong>: 投入低, 玩家体验立刻好. 既保留 TRPG 探索感, 又让探索有真意义. 跟 80 Days / Roadwarden 标杆做法吻合.
+  </p>
+</div>
+
+<div class="verdict">
+  <h3>★ top 2 · 模式 3 hub-spoke (2 层菜单)</h3>
+  <p>
+    每场景默认 2 个选项: <code>[ 探索这里 ]</code> / <code>[ 继续前进 ]</code>. 点探索 → 弹 4 个探索动作 + "回上一层"; 点前进 → 弹 exits.
+  </p>
+  <p>
+    <strong>工作量</strong>: builder 改 2 层 menu 渲染 + gen prompt 改 (生成 inSceneAction 时知道是子菜单) 1-2 天.
+  </p>
+  <p>
+    <strong>跟 top 1 比</strong>: 体验更分明 (像 80 Days/Heaven's Vault), 但每场景玩家多 1 次点击. 工作量比 top 1 大. 但效果上限更高 — 如果你想做长本子 (10+ 小时), 这个体验更稳.
+  </p>
+</div>
+
+<div class="card">
+  <h4>备胎 · 模式 1 全砍 (CYOA)</h4>
+  <p>如果你觉得 in-scene action 没必要存在, 接受我们就是 "AI 改编版 AAtF", 全砍掉是最快的解法 (10 min). 节奏紧凑, 玩家走 5-10 分钟一本短本. 但失去 TRPG 跑团的"探索"维度.</p>
+  <p>这是最有勇气的 V0 路线 — 接受范围更紧, 不追 TRPG 全形态.</p>
+</div>
+
+<!-- ========== E · 拍板 ========== -->
+<h2 class="section" id="e">E · 你拍板</h2>
+
+<div class="picker">
+  <h3>你选哪条?</h3>
+  <div class="pick-item" data-pick="1">
+    <div class="name">① top 1 · 前缀 + 探索有意义 (推荐)</div>
+    <div class="why">半天工作量 / 80 Days 标杆做法 / 平衡探索感和清晰度. 我手工给 kohaku 18 场景的 in-scene action 标 sets 字段</div>
+  </div>
+  <div class="pick-item" data-pick="2">
+    <div class="name">② top 2 · hub-spoke 2 层菜单</div>
+    <div class="why">1-2 天工作量 / 体验最分明 / 仿 Heaven's Vault. 需要 builder 大改 + sub-scene 生成</div>
+  </div>
+  <div class="pick-item" data-pick="3">
+    <div class="name">③ 备胎 · 全砍 in-scene action (CYOA)</div>
+    <div class="why">10 分钟 / 节奏紧凑 / 接受不再是 TRPG, 是 AI 改编版 AAtF</div>
+  </div>
+  <div class="pick-item" data-pick="4">
+    <div class="name">④ 其他 / 我有想法</div>
+    <div class="why">比如 "先 top 1 看效果再升级 top 2" / "模式 4 Disco Elysium 范式" / "你做个 PoC 我看"</div>
+  </div>
+
+  <button class="copy-btn" id="copyBtn" disabled>📋 复制我的选择给 AI</button>
+  <div id="picked" style="color: var(--ink-dim); font-size: 13px; margin-top: 8px;"></div>
+</div>
+
+<footer>
+  数据来源: Disco Elysium Wiki / Inkle 官方博客 / 80 Days devlog / Roadwarden 评论 / AAtF gamebook 评论 / Sherlock Holmes wiki / AI Dungeon docs / Ink 语言文档.<br>
+  完成于 2026-05-31.
+</footer>
+
+</main>
+
+<script>
+let picked = null;
+const PICK_TEXT = {
+  '1': '① top 1 · 前缀 + 探索有意义 (模式 2 + 模式 6 组合). 半天工作量, kohaku 手工标 sets 字段.',
+  '2': '② top 2 · hub-spoke 2 层菜单. 1-2 天工作量, 改 builder.',
+  '3': '③ 备胎 · 全砍 in-scene action. 10 分钟, CYOA 风.',
+  '4': '④ 其他: [填你的想法]',
+};
+
+document.querySelectorAll('.pick-item').forEach((el) => {
+  el.addEventListener('click', () => {
+    document.querySelectorAll('.pick-item').forEach((e) => e.classList.remove('selected'));
+    el.classList.add('selected');
+    picked = el.dataset.pick;
+    const btn = document.getElementById('copyBtn');
+    btn.disabled = false;
+    document.getElementById('picked').textContent = '已选: ' + PICK_TEXT[picked];
+  });
+});
+
+document.getElementById('copyBtn').addEventListener('click', () => {
+  if (!picked) return;
+  const text = '我选: ' + PICK_TEXT[picked];
+  navigator.clipboard.writeText(text).then(() => {
+    document.getElementById('copyBtn').textContent = '✓ 已复制, 粘贴给 AI';
+    setTimeout(() => {
+      document.getElementById('copyBtn').textContent = '📋 复制我的选择给 AI';
+    }, 2400);
+  });
+});
+</script>
+</body>
+</html>

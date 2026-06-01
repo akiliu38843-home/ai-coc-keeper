@@ -17,6 +17,8 @@ import { buildScenarioGame, truncateChoiceLabel } from '../src/adapter/webgal-sc
 import { updateWebGalConfig } from '../src/adapter/webgal-config.js';
 import { installWebgalTheme } from '../src/adapter/install-theme.js';
 import { installCharacterCard, buildCharacterCardData } from '../src/adapter/install-character-card.js';
+// B 路: 不再外挂注入 coc-ui
+// import { installCocUi } from '../src/adapter/install-coc-ui.js';
 import { listCharacters, loadCharacter } from '../src/character/save-load.js';
 import type { Character } from '../src/types/character.js';
 import type { Scenario } from '../src/types/scenario.js';
@@ -151,6 +153,7 @@ async function main(): Promise<void> {
   // 角色卡按钮: 注入 css/js. launcher 模式有 char 就传 char data, 没就传 null
   // (没有时按钮仍出现, 点开提示"未加载角色")
   await installCharacterCard(PROJECT_ROOT, char ? buildCharacterCardData(char) : null);
+  // await installCocUi(PROJECT_ROOT);  // B 路
 
   console.log(`\n✅ 完成 · 浏览器刷新看启动选择器`);
 }

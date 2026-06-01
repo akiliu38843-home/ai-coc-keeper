@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>剧本标注 · 段落级处理决策</title>
+<style>
+:root {
+  --ink: #2c2418;
+  --ink-dim: #6b5b3e;
+  --paper: #f4ead4;
+  --paper-2: #ede2c4;
+  --line: #c8b88a;
+  --accent: #8b2c1f;
+  --accent-bri: #c44537;
+  --amber: #b89559;
+  --olive: #5e6b3a;
+  --shadow: 0 2px 6px rgba(60, 44, 20, 0.18);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--paper); color: var(--ink);
+  font-family: "Noto Serif SC", "Songti SC", "Source Han Serif", serif;
+  font-size: 15px; line-height: 1.65; }
+
+header { position: sticky; top: 0; z-index: 10; background: var(--paper-2);
+  border-bottom: 1px solid var(--line); padding: 14px 24px;
+  box-shadow: 0 2px 8px rgba(60, 44, 20, 0.12); }
+header h1 { margin: 0; font-size: 18px; letter-spacing: 0.05em; color: var(--accent); }
+header .sub { font-size: 12px; color: var(--ink-dim); margin-top: 4px; letter-spacing: 0.08em; }
+
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 24px;
+  background: var(--paper); border-bottom: 1px solid var(--line); }
+.toolbar button { padding: 6px 14px; border: 1px solid var(--line); border-radius: 0;
+  background: var(--paper-2); color: var(--ink); cursor: pointer; font-family: inherit;
+  font-size: 13px; letter-spacing: 0.05em; transition: all 0.15s ease; }
+.toolbar button:hover { background: var(--accent); color: white; border-color: var(--accent); }
+.toolbar .stat { margin-left: auto; font-size: 12px; color: var(--ink-dim);
+  display: flex; gap: 14px; align-items: center; padding-right: 8px; }
+.toolbar .stat span { padding: 2px 8px; background: var(--paper-2); border: 1px solid var(--line); }
+
+main { max-width: 1100px; margin: 0 auto; padding: 24px; }
+
+/* ---- 加载区 ---- */
+.load-zone { border: 2px dashed var(--line); padding: 32px 24px; margin-bottom: 24px;
+  background: var(--paper-2); text-align: center; }
+.load-zone h2 { margin: 0 0 12px; font-size: 16px; color: var(--accent); }
+.load-zone p { margin: 6px 0; color: var(--ink-dim); font-size: 13px; }
+.load-zone textarea { width: 100%; min-height: 140px; margin-top: 12px;
+  padding: 10px; border: 1px solid var(--line); background: white;
+  font-family: inherit; font-size: 13px; resize: vertical; }
+.load-zone .load-btn { margin-top: 10px; padding: 8px 24px; border: 1px solid var(--accent);
+  background: var(--accent); color: white; cursor: pointer; font-family: inherit;
+  font-size: 14px; letter-spacing: 0.05em; }
+.load-zone .load-btn:hover { background: var(--accent-bri); }
+
+/* ---- 章节 ---- */
+.chapter { margin-bottom: 32px; }
+.chapter-title { font-size: 16px; font-weight: 700; color: var(--accent);
+  letter-spacing: 0.15em; padding: 8px 0; border-bottom: 2px solid var(--accent);
+  margin-bottom: 12px; }
+
+/* ---- 段落 ---- */
+.para { margin-bottom: 18px; padding: 14px 16px; background: white;
+  border: 1px solid var(--line); border-left: 4px solid var(--line);
+  box-shadow: var(--shadow); position: relative; transition: all 0.18s ease; }
+.para .pidx { position: absolute; top: 8px; right: 12px; font-size: 11px;
+  color: var(--ink-dim); letter-spacing: 0.1em; font-family: ui-monospace, monospace; }
+.para .text { padding-right: 60px; white-space: pre-wrap; font-size: 15px; }
+
+.tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px;
+  padding-top: 10px; border-top: 1px dashed var(--line); }
+.tag-btn { padding: 4px 12px; border: 1px solid var(--line); background: var(--paper-2);
+  color: var(--ink-dim); cursor: pointer; font-family: inherit; font-size: 12px;
+  letter-spacing: 0.05em; transition: all 0.15s ease; user-select: none; border-radius: 0; }
+.tag-btn:hover { border-color: var(--accent); color: var(--accent); }
+.tag-btn.on { background: var(--accent); color: white; border-color: var(--accent); font-weight: 700; }
+
+/* ---- 标签视觉 ---- */
+.para.has-verbatim { background: #f0f7e8; border-left-color: var(--olive); }
+.para.has-expand { background: #e8f1f7; border-left-color: #2c5478; }
+.para.has-drop { background: #ece8e0; border-left-color: #999; color: var(--ink-dim);
+  text-decoration: line-through; text-decoration-color: rgba(0,0,0,0.3); }
+.para.has-combat { border-left-color: var(--accent); border-left-width: 6px;
+  box-shadow: 0 0 0 1px var(--accent), var(--shadow); }
+.para.has-check { border-left-color: var(--amber); border-left-width: 6px; }
+.para.has-flag { background: #f3e8f7; border-left-color: #6b3578; }
+
+/* combined */
+.para.has-verbatim.has-flag { background: linear-gradient(135deg, #f0f7e8 50%, #f3e8f7 50%); }
+.para.has-verbatim.has-check { background: linear-gradient(135deg, #f0f7e8 50%, #fdf3d8 50%); }
+
+.detail-row { margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap; }
+.detail-row input { padding: 4px 8px; border: 1px solid var(--line); background: white;
+  font-family: inherit; font-size: 12px; min-width: 200px; }
+.detail-row label { font-size: 11px; color: var(--ink-dim); letter-spacing: 0.05em;
+  display: flex; align-items: center; gap: 4px; }
+
+/* ---- 弹窗 ---- */
+.modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+  z-index: 100; display: none; align-items: center; justify-content: center; padding: 24px; }
+.modal-backdrop.open { display: flex; }
+.modal { background: var(--paper); border: 1px solid var(--line); padding: 24px;
+  max-width: 800px; width: 100%; max-height: 86vh; overflow-y: auto; }
+.modal h3 { margin-top: 0; color: var(--accent); border-bottom: 1px solid var(--line);
+  padding-bottom: 10px; }
+.modal pre { background: var(--paper-2); padding: 12px; border: 1px solid var(--line);
+  white-space: pre-wrap; word-break: break-word; font-size: 12px; max-height: 60vh;
+  overflow-y: auto; }
+.modal .actions { display: flex; gap: 8px; margin-top: 14px; }
+.modal .actions button { padding: 6px 16px; border: 1px solid var(--line);
+  background: var(--paper-2); cursor: pointer; font-family: inherit; }
+.modal .actions button.primary { background: var(--accent); color: white; border-color: var(--accent); }
+
+/* ---- 图例 ---- */
+.legend { padding: 16px; background: var(--paper-2); border: 1px solid var(--line);
+  margin-bottom: 18px; font-size: 12px; }
+.legend h3 { margin: 0 0 8px; font-size: 13px; color: var(--accent); letter-spacing: 0.1em; }
+.legend ul { margin: 0; padding-left: 18px; }
+.legend li { margin-bottom: 3px; }
+.legend code { background: white; padding: 1px 6px; border: 1px solid var(--line); font-size: 11px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📜 剧本段落标注</h1>
+  <div class="sub">按段处理 · 决定 LLM 改写策略 · 自动存浏览器 · 一键导出</div>
+</header>
+
+<div class="toolbar" id="toolbar" style="display:none;">
+  <button onclick="exportJSON()">📦 导出 JSON</button>
+  <button onclick="exportMarkdown()">📝 导出 Markdown</button>
+  <button onclick="copyForAI()">📋 复制给 AI</button>
+  <button onclick="resetAll()">♻️ 全部清空</button>
+  <button onclick="changeText()">📃 换原文</button>
+  <div class="stat" id="stat"></div>
+</div>
+
+<main>
+
+  <div class="load-zone" id="loadZone">
+    <h2>把剧本原文粘贴进来</h2>
+    <p>整本 / 一章都行。空行分段，<code>【XXX】</code> 自动识别为章节</p>
+    <textarea id="rawText" placeholder="比如把 .test-scenarios/csc-kohaku/kohaku.zh.txt 整本贴进来..."></textarea>
+    <button class="load-btn" onclick="loadFromTextarea()">载入并切段</button>
+  </div>
+
+  <div class="legend" id="legend" style="display:none;">
+    <h3>使用说明</h3>
+    <ul>
+      <li><code>✅ 保留原文</code>：信息密度高 / 对话 / 文件，LLM 不许改写，只能照搬。<strong>默认状态推荐</strong></li>
+      <li><code>✏️ 需扩写</code>：信息稀疏（如"楼里爆炸 → 蛇消失"），LLM 加感官 / 内心描写</li>
+      <li><code>🗑 删元术语</code>：暴露 KP / 跑团术语 / 作者注 / "请保存使用" 这种</li>
+      <li><code>⚔️ 战斗</code>：必发战斗事件，引擎介入</li>
+      <li><code>🎲 检定</code>：技能 / SAN 检定触发点</li>
+      <li><code>🚩 flag</code>：影响后续 / 结局的关键状态，填 flag 名</li>
+    </ul>
+  </div>
+
+  <div id="paragraphs"></div>
+</main>
+
+<!-- 导出弹窗 -->
+<div class="modal-backdrop" id="modal" onclick="if(event.target===this) closeModal()">
+  <div class="modal">
+    <h3 id="modalTitle">导出</h3>
+    <pre id="modalContent"></pre>
+    <div class="actions">
+      <button class="primary" onclick="copyModalContent()">📋 复制全部</button>
+      <button onclick="closeModal()">关闭</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'coc-scenario-annotator-v1';
+const TEXT_KEY = 'coc-scenario-annotator-text-v1';
+
+const TAGS = [
+  { key: 'verbatim', label: '✅ 保留原文', needDetail: false },
+  { key: 'expand',   label: '✏️ 需扩写',  needDetail: true,  detailLabel: '扩写方向（可选）', placeholder: '如：1 楼蛇战展开 2 轮' },
+  { key: 'drop',     label: '🗑 删元术语', needDetail: false },
+  { key: 'combat',   label: '⚔️ 战斗',    needDetail: true,  detailLabel: '战斗对象', placeholder: '如：所员 / 蛇人 / 1d3 条蛇' },
+  { key: 'check',    label: '🎲 检定',    needDetail: true,  detailLabel: '技能 / 难度', placeholder: '如：spot_hidden hard, listen normal' },
+  { key: 'flag',     label: '🚩 flag',    needDetail: true,  detailLabel: 'flag 名', placeholder: '如：hasGun=true / triggerAlarm' },
+];
+
+let state = {};  // { pIdx: { tags: Set, details: { tagKey: text } } }
+let paragraphs = [];
+
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const obj = JSON.parse(raw);
+      state = {};
+      Object.entries(obj).forEach(([k, v]) => {
+        state[k] = { tags: new Set(v.tags || []), details: v.details || {} };
+      });
+    }
+  } catch (e) { console.warn('load err', e); }
+}
+function save() {
+  const out = {};
+  Object.entries(state).forEach(([k, v]) => {
+    if (v.tags.size === 0 && Object.keys(v.details).length === 0) return;
+    out[k] = { tags: [...v.tags], details: v.details };
+  });
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(out));
+}
+
+function loadFromTextarea() {
+  const raw = document.getElementById('rawText').value.trim();
+  if (!raw) { alert('请先粘贴文本'); return; }
+  localStorage.setItem(TEXT_KEY, raw);
+  parseAndRender(raw);
+}
+
+function changeText() {
+  if (!confirm('换原文会清空所有已标注的标签, 确定？')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem(TEXT_KEY);
+  state = {};
+  paragraphs = [];
+  document.getElementById('loadZone').style.display = 'block';
+  document.getElementById('toolbar').style.display = 'none';
+  document.getElementById('legend').style.display = 'none';
+  document.getElementById('paragraphs').innerHTML = '';
+  document.getElementById('rawText').value = '';
+}
+
+function parseAndRender(raw) {
+  // 按空行 split, 识别 【...】 章节标题
+  const lines = raw.split(/\r?\n/);
+  const blocks = [];
+  let buf = [];
+  for (const line of lines) {
+    if (line.trim() === '') {
+      if (buf.length > 0) {
+        blocks.push(buf.join('\n').trim());
+        buf = [];
+      }
+    } else {
+      buf.push(line);
+    }
+  }
+  if (buf.length > 0) blocks.push(buf.join('\n').trim());
+
+  // 把 【XXX】 当章节, 其他当段落, 按章节分组
+  const chapters = [];
+  let cur = { title: '（开头）', paras: [] };
+  for (const b of blocks) {
+    const m = b.match(/^【(.+?)】\s*$/);
+    if (m) {
+      if (cur.paras.length > 0) chapters.push(cur);
+      cur = { title: m[1], paras: [] };
+    } else {
+      cur.paras.push(b);
+    }
+  }
+  if (cur.paras.length > 0) chapters.push(cur);
+
+  paragraphs = [];
+  chapters.forEach((ch) => {
+    paragraphs.push({ chapter: ch.title, paras: ch.paras });
+  });
+
+  document.getElementById('loadZone').style.display = 'none';
+  document.getElementById('toolbar').style.display = 'flex';
+  document.getElementById('legend').style.display = 'block';
+
+  renderAll();
+}
+
+function renderAll() {
+  const root = document.getElementById('paragraphs');
+  root.innerHTML = '';
+  let globalIdx = 0;
+
+  paragraphs.forEach((ch) => {
+    const chBox = document.createElement('div');
+    chBox.className = 'chapter';
+    const titleEl = document.createElement('div');
+    titleEl.className = 'chapter-title';
+    titleEl.textContent = '【' + ch.chapter + '】';
+    chBox.appendChild(titleEl);
+
+    ch.paras.forEach((paraText) => {
+      const idx = globalIdx++;
+      if (!state[idx]) state[idx] = { tags: new Set(), details: {} };
+      const node = renderPara(idx, paraText);
+      chBox.appendChild(node);
+    });
+
+    root.appendChild(chBox);
+  });
+
+  updateStat();
+}
+
+function renderPara(idx, text) {
+  const box = document.createElement('div');
+  box.className = 'para';
+  box.dataset.idx = idx;
+
+  const pidx = document.createElement('div');
+  pidx.className = 'pidx';
+  pidx.textContent = '#' + String(idx).padStart(3, '0');
+  box.appendChild(pidx);
+
+  const textEl = document.createElement('div');
+  textEl.className = 'text';
+  textEl.textContent = text;
+  box.appendChild(textEl);
+
+  const tagRow = document.createElement('div');
+  tagRow.className = 'tag-row';
+  TAGS.forEach((tag) => {
+    const btn = document.createElement('button');
+    btn.className = 'tag-btn';
+    btn.textContent = tag.label;
+    btn.dataset.tag = tag.key;
+    btn.onclick = () => toggleTag(idx, tag.key);
+    tagRow.appendChild(btn);
+  });
+  box.appendChild(tagRow);
+
+  const detailRow = document.createElement('div');
+  detailRow.className = 'detail-row';
+  detailRow.style.display = 'none';
+  box.appendChild(detailRow);
+
+  applyTagsToDom(idx);
+  return box;
+}
+
+function toggleTag(idx, tagKey) {
+  const st = state[idx];
+  if (st.tags.has(tagKey)) {
+    st.tags.delete(tagKey);
+    delete st.details[tagKey];
+  } else {
+    st.tags.add(tagKey);
+  }
+  save();
+  applyTagsToDom(idx);
+  updateStat();
+}
+
+function applyTagsToDom(idx) {
+  const box = document.querySelector('.para[data-idx="' + idx + '"]');
+  if (!box) return;
+  const st = state[idx];
+
+  // 重置 class
+  box.className = 'para';
+  st.tags.forEach((t) => box.classList.add('has-' + t));
+
+  // 按钮 on/off
+  box.querySelectorAll('.tag-btn').forEach((btn) => {
+    btn.classList.toggle('on', st.tags.has(btn.dataset.tag));
+  });
+
+  // 渲染 detail 输入框
+  const detailRow = box.querySelector('.detail-row');
+  detailRow.innerHTML = '';
+  let any = false;
+  TAGS.forEach((tag) => {
+    if (tag.needDetail && st.tags.has(tag.key)) {
+      any = true;
+      const lbl = document.createElement('label');
+      lbl.textContent = tag.detailLabel + '：';
+      const inp = document.createElement('input');
+      inp.placeholder = tag.placeholder || '';
+      inp.value = st.details[tag.key] || '';
+      inp.oninput = () => {
+        st.details[tag.key] = inp.value;
+        save();
+      };
+      lbl.appendChild(inp);
+      detailRow.appendChild(lbl);
+    }
+  });
+  detailRow.style.display = any ? 'flex' : 'none';
+}
+
+function updateStat() {
+  const counts = {};
+  TAGS.forEach((t) => counts[t.key] = 0);
+  let total = 0;
+  let tagged = 0;
+  paragraphs.forEach((ch) => {
+    ch.paras.forEach(() => {
+      total++;
+    });
+  });
+  Object.values(state).forEach((st) => {
+    if (st.tags.size > 0) tagged++;
+    st.tags.forEach((t) => counts[t] = (counts[t] || 0) + 1);
+  });
+
+  const html = TAGS.map((t) => {
+    const c = counts[t.key] || 0;
+    return '<span>' + t.label.split(' ')[0] + ' ' + c + '</span>';
+  }).join('') +
+    '<span>📊 ' + tagged + '/' + total + '</span>';
+  document.getElementById('stat').innerHTML = html;
+}
+
+// ---- 导出 ----
+function buildExport() {
+  const list = [];
+  let idx = 0;
+  paragraphs.forEach((ch) => {
+    ch.paras.forEach((text) => {
+      const st = state[idx] || { tags: new Set(), details: {} };
+      list.push({
+        idx,
+        chapter: ch.chapter,
+        text,
+        tags: [...st.tags],
+        details: st.details,
+      });
+      idx++;
+    });
+  });
+  return list;
+}
+
+function exportJSON() {
+  const data = buildExport();
+  openModal('JSON 导出', JSON.stringify(data, null, 2));
+}
+
+function exportMarkdown() {
+  const data = buildExport();
+  let md = '# 剧本标注\n\n';
+  let curCh = '';
+  data.forEach((p) => {
+    if (p.chapter !== curCh) {
+      md += '\n## 【' + p.chapter + '】\n\n';
+      curCh = p.chapter;
+    }
+    md += '### #' + String(p.idx).padStart(3, '0') + '\n';
+    md += '> ' + p.text.replace(/\n/g, '\n> ') + '\n\n';
+    if (p.tags.length > 0) {
+      md += '**标签：** ' + p.tags.join(' · ') + '\n';
+    }
+    if (Object.keys(p.details).length > 0) {
+      Object.entries(p.details).forEach(([k, v]) => {
+        md += '- **' + k + '：** ' + v + '\n';
+      });
+    }
+    md += '\n';
+  });
+  openModal('Markdown 导出', md);
+}
+
+function copyForAI() {
+  const data = buildExport();
+  // 只输出有标签的段落, 压缩格式给 AI
+  let txt = '# 段落标注（给 AI 用 · 仅含已标注段落）\n\n';
+  let curCh = '';
+  data.forEach((p) => {
+    if (p.tags.length === 0) return;
+    if (p.chapter !== curCh) {
+      txt += '\n## ' + p.chapter + '\n';
+      curCh = p.chapter;
+    }
+    txt += '\n[#' + p.idx + ' tags=' + p.tags.join(',') + ']\n';
+    Object.entries(p.details).forEach(([k, v]) => {
+      txt += '  ' + k + '=' + v + '\n';
+    });
+    txt += '原文：' + p.text + '\n';
+  });
+  navigator.clipboard.writeText(txt).then(() => {
+    alert('已复制 ' + data.filter((p) => p.tags.length > 0).length + ' 段标注到剪贴板');
+  });
+}
+
+function openModal(title, content) {
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalContent').textContent = content;
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+}
+function copyModalContent() {
+  const txt = document.getElementById('modalContent').textContent;
+  navigator.clipboard.writeText(txt).then(() => alert('已复制 ' + txt.length + ' 字符'));
+}
+
+function resetAll() {
+  if (!confirm('清空所有标签? (原文保留)')) return;
+  state = {};
+  paragraphs.forEach((ch) => ch.paras.forEach((_, i) => {
+    state[i] = { tags: new Set(), details: {} };
+  }));
+  save();
+  renderAll();
+}
+
+// ---- 启动 ----
+load();
+const savedText = localStorage.getItem(TEXT_KEY);
+if (savedText) {
+  document.getElementById('rawText').value = savedText;
+  parseAndRender(savedText);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>剧本标注 · 原则 v1 待批准</title>
+<style>
+:root {
+  --ink: #2c2418;
+  --ink-dim: #6b5b3e;
+  --paper: #f4ead4;
+  --paper-2: #ede2c4;
+  --paper-3: #e3d4ac;
+  --line: #c8b88a;
+  --accent: #8b2c1f;
+  --accent-bri: #c44537;
+  --amber: #b89559;
+  --olive: #5e6b3a;
+  --plum: #6b3578;
+  --rust: #8b4513;
+  --shadow: 0 2px 6px rgba(60, 44, 20, 0.18);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--paper); color: var(--ink);
+  font-family: "Noto Serif SC", "Songti SC", "Source Han Serif", serif;
+  font-size: 17px; line-height: 1.75; }
+
+header { background: var(--paper-2); border-bottom: 2px solid var(--accent);
+  padding: 22px 32px; position: sticky; top: 0; z-index: 10; box-shadow: var(--shadow); }
+header h1 { margin: 0; font-size: 24px; color: var(--accent); letter-spacing: 0.05em; }
+header .sub { font-size: 14px; color: var(--ink-dim); margin-top: 6px; letter-spacing: 0.08em; }
+
+main { max-width: 1080px; margin: 0 auto; padding: 32px; }
+
+section { margin-bottom: 40px; }
+section h2 { font-size: 20px; color: var(--accent); margin: 0 0 14px;
+  padding-bottom: 8px; border-bottom: 1px solid var(--line); letter-spacing: 0.06em; }
+
+.summary-box { background: var(--paper-2); border-left: 5px solid var(--accent);
+  padding: 18px 24px; margin: 16px 0; font-size: 18px; line-height: 1.8; }
+.summary-box strong { color: var(--accent); }
+
+table { width: 100%; border-collapse: collapse; margin: 14px 0;
+  background: white; box-shadow: var(--shadow); }
+th { background: var(--paper-3); padding: 12px; text-align: left; font-weight: 700;
+  border-bottom: 2px solid var(--line); color: var(--accent); letter-spacing: 0.05em; }
+td { padding: 12px; border-bottom: 1px solid var(--paper-3); vertical-align: top; }
+tr:last-child td { border-bottom: none; }
+td.tag { font-weight: 700; white-space: nowrap; width: 140px; }
+td.ex { color: var(--ink-dim); font-size: 14px; font-family: ui-monospace, "Menlo", monospace; }
+
+.subtype { background: white; border: 1px solid var(--line); padding: 14px 18px;
+  margin: 10px 0; box-shadow: var(--shadow); }
+.subtype h4 { margin: 0 0 6px; color: var(--rust); font-size: 16px; letter-spacing: 0.04em; }
+.subtype .when { color: var(--ink-dim); font-size: 14px; }
+.subtype .ex { font-family: ui-monospace, "Menlo", monospace; font-size: 13px;
+  background: var(--paper-2); padding: 2px 8px; border: 1px solid var(--line); display: inline-block;
+  margin-top: 4px; }
+
+ul.plan { list-style: none; padding: 0; }
+ul.plan li { padding: 10px 14px; margin-bottom: 6px; background: white;
+  border-left: 4px solid var(--olive); box-shadow: var(--shadow); }
+ul.plan li code { background: var(--paper-2); padding: 1px 6px; border: 1px solid var(--line);
+  font-size: 13px; }
+
+ol.questions { padding-left: 24px; }
+ol.questions li { margin-bottom: 14px; padding: 12px 14px; background: white;
+  border-left: 4px solid var(--amber); box-shadow: var(--shadow); }
+ol.questions li strong { color: var(--rust); }
+ol.questions li .recommend { color: var(--olive); font-size: 14px;
+  margin-top: 4px; display: block; font-style: italic; }
+
+.actions { display: flex; gap: 12px; justify-content: center; margin: 36px 0; }
+.actions .btn { padding: 14px 28px; border: 2px solid var(--accent); background: white;
+  color: var(--accent); font-family: inherit; font-size: 16px; cursor: pointer;
+  letter-spacing: 0.08em; transition: all 0.2s ease; box-shadow: var(--shadow); }
+.actions .btn.primary { background: var(--accent); color: white; }
+.actions .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 14px rgba(139, 44, 31, 0.4); }
+
+.tag-mini { display: inline-block; padding: 1px 7px; font-size: 12px;
+  border: 1px solid var(--line); background: var(--paper-2); margin: 0 2px;
+  font-family: ui-monospace, "Menlo", monospace; }
+.tag-mini.v { background: #f0f7e8; border-color: var(--olive); color: var(--olive); }
+.tag-mini.e { background: #e8f1f7; border-color: #2c5478; color: #2c5478; }
+.tag-mini.d { background: #ece8e0; border-color: #999; color: #666; text-decoration: line-through; }
+.tag-mini.c { background: #fde8e6; border-color: var(--accent); color: var(--accent); }
+.tag-mini.k { background: #fdf3d8; border-color: var(--amber); color: var(--rust); }
+.tag-mini.f { background: #f3e8f7; border-color: var(--plum); color: var(--plum); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📜 剧本标注 · 原则 v1 待批准</h1>
+  <div class="sub">我从你已标的 80 段提炼出 6 条规则 + 4 种扩写子型. 确认后再去标剩下 ~200 段</div>
+</header>
+
+<main>
+
+<section>
+  <h2>一、一句话原则</h2>
+  <div class="summary-box">
+    <strong>原文有内容就一字不改</strong>，<strong>缺信息处补感官/选项/分支</strong>，<strong>元术语全删</strong>，<strong>战斗/检定/flag 触发点单独标记</strong>。
+  </div>
+  <p style="color: var(--ink-dim); font-size: 14px;">
+    跟之前 LLM "卷宗化改编" 的差别 — 之前是<em>压缩 + 加味</em>, 现在是<em>保留 + 在稀疏处加味</em>。信件、对话、资料这种信息密集场景，<strong>一个字都不许 LLM 改</strong>。
+  </p>
+</section>
+
+<section>
+  <h2>二、6 个标签 · 触发条件</h2>
+  <table>
+    <thead><tr><th style="width:14%">标签</th><th style="width:50%">什么时候用</th><th>你的例子</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="tag"><span class="tag-mini v">✅ verbatim</span></td>
+        <td>原文已经是<strong>完整事实 / 对话 / 文件 / 资料</strong>。塞 narrate 一字不改</td>
+        <td class="ex">#012-#019 信件每句<br>#025-#030 伊藤独白<br>#033-#039 病毒资料</td>
+      </tr>
+      <tr>
+        <td class="tag"><span class="tag-mini e">✏️ expand</span></td>
+        <td>原文是<strong>叙述型骨架</strong>，需要游戏化（拆选项 / 加感官 / 删 Q.A / 自由发挥）。<strong>分 4 种子型（下一节）</strong></td>
+        <td class="ex">#004 门 / #005 自动门<br>#043 伊藤求助<br>#065 防护服掩护</td>
+      </tr>
+      <tr>
+        <td class="tag"><span class="tag-mini d">🗑 drop</span></td>
+        <td>作者注 / KP 提示 / 分隔符 / OOC / "请保存使用" 类元术语</td>
+        <td class="ex">#061 ＜map＞ / #062 请保存<br>#280-#281 作者感想</td>
+      </tr>
+      <tr>
+        <td class="tag"><span class="tag-mini f">🚩 flag</span></td>
+        <td>影响<strong>后续走向 / 结局 / 选项可见性</strong>的关键状态变化</td>
+        <td class="ex">#042 信任伊藤<br>#045 战胜拿教义<br>#063 拿衣服</td>
+      </tr>
+      <tr>
+        <td class="tag"><span class="tag-mini c">⚔️ combat</span></td>
+        <td>战斗事件触发 <strong>+ NPC 数值表整块</strong>（每段都标，作为同一战斗对象的数据）</td>
+        <td class="ex">#045 袭击所员（事件）<br>#048-#057 所员数值（数据）</td>
+      </tr>
+      <tr>
+        <td class="tag"><span class="tag-mini k">🎲 check</span></td>
+        <td>技能 / SAN 检定触发点。detail 字段填技能 + 后续动作</td>
+        <td class="ex">#002 灵感<br>#008 药学<br>#022 调查（建议加）</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2>三、 <span class="tag-mini e">expand</span> 分 4 种子型（关键）</h2>
+  <p style="color: var(--ink-dim);">这是最容易跑偏的标签。从你的标注我读出 4 种不同意图：</p>
+
+  <div class="subtype">
+    <h4>A · 加感官内心</h4>
+    <div class="when">原文"X 发生了"，但缺细节。LLM 补"林夏看见 / 听见 / 想到..."</div>
+    <div class="ex">#007 工作人员被吓跑 → 扩"林夏听见快速的脚步声"</div>
+  </div>
+
+  <div class="subtype">
+    <h4>B · 拆游戏选项</h4>
+    <div class="when">原文"如果调查员 X 就 Y"，<strong>不写进 narrate</strong>，而是 builder 拆成 inSceneAction（探索动作）</div>
+    <div class="ex">#004 #005 两扇门 → 探索点。#022 #024 小洞 → 两个选项</div>
+  </div>
+
+  <div class="subtype">
+    <h4>C · 删 Q.A 改对话</h4>
+    <div class="when">原文 Q/A 字面格式（"Q.这里是哪里？" "A.研究所"）→ 转成<strong>主角问、NPC 答</strong>的对话形式</div>
+    <div class="ex">#031-#041 全部转伊藤对话，去掉 Q. / A. 前缀</div>
+  </div>
+
+  <div class="subtype">
+    <h4>D · 基于骨架自由发挥</h4>
+    <div class="when">原文是<strong>知识 / 历史 / 真相骨架</strong>，LLM 写成有氛围的文段，比原文厚但不偏离</div>
+    <div class="ex">#088-#099 教团介绍 / #275-#279 真相揭露</div>
+  </div>
+</section>
+
+<section>
+  <h2>四、组合标签规则（你的用法）</h2>
+  <ul class="plan">
+    <li><span class="tag-mini f">flag</span> + <span class="tag-mini e">expand</span> ：决策点 + 扩写反应。<code>#068 救伊藤分歧 + 扩写他的危险</code></li>
+    <li><span class="tag-mini f">flag</span> + <span class="tag-mini c">combat</span> ：战斗胜利后给 flag。<code>#045 打倒所员拿教义/钥匙</code></li>
+    <li><span class="tag-mini k">check</span> + <span class="tag-mini e">expand</span> ：检定成功后扩写。<code>#002 灵感成功 → 扩车祸记忆</code></li>
+    <li><strong>整块 combat</strong>：NPC 数值表所有段都标 combat（一个 NPC 对象的数据全打包）</li>
+  </ul>
+</section>
+
+<section>
+  <h2>五、我准备这么标剩下 ~200 段</h2>
+  <ul class="plan">
+    <li>#072-#086 伊藤数值表 → <span class="tag-mini c">combat</span> 整块（NPC 数据，跟所员同理）</li>
+    <li>#100-#101 仓库 → <span class="tag-mini e">expand B</span> 拆探索 + <span class="tag-mini f">flag</span> 拿手枪 + <span class="tag-mini k">check</span> 目星</li>
+    <li>#102-#103 EV 电梯 → <span class="tag-mini v">verbatim</span> 描述 + <span class="tag-mini f">flag</span> 需要主钥匙</li>
+    <li>#108-#114 病毒/样本室 → <span class="tag-mini k">check</span> 目星 + <span class="tag-mini f">flag</span> 拿瓶子</li>
+    <li>#118-#137 研究办公室 → <span class="tag-mini v">verbatim</span> 资料原文 + <span class="tag-mini f">flag</span> 拿数据 + <span class="tag-mini d">drop</span> ポイント</li>
+    <li>#138-#151 生体实验室 → <span class="tag-mini c">combat</span> 所员+僵尸数值 + <span class="tag-mini f">flag</span> 救人质 + <span class="tag-mini k">check</span></li>
+    <li>#156-#176 所员日记 → <span class="tag-mini v">verbatim</span> 每段（日记内容本身就是产物）</li>
+    <li>#188-#195 报纸内容 → <span class="tag-mini v">verbatim</span> 每条 + <span class="tag-mini f">flag</span> 主角知道身世</li>
+    <li>#202-#236 总裁室 boss 战 → <span class="tag-mini e">expand A</span> 战斗描写 + <span class="tag-mini c">combat</span> 蛇人/伊古数值 + <span class="tag-mini f">flag</span> 拿密码 + <span class="tag-mini k">check</span> 闻声辨位 + <span class="tag-mini v">verbatim</span> #220-#223 氛围段</li>
+    <li>#237-#260 结局分支 → <span class="tag-mini e">expand B</span> 拆选项 + <span class="tag-mini f">flag</span> 路径选择 + <span class="tag-mini c">combat</span> 1 楼蛇战</li>
+    <li>#261-#274 结局奖励 → 转 ending router 数据：<span class="tag-mini d">drop</span> 大半 + <span class="tag-mini f">flag</span> 关键奖励条件</li>
+  </ul>
+</section>
+
+<section>
+  <h2>六、5 处要你拍板的边界</h2>
+  <ol class="questions">
+    <li>
+      <strong>NPC 数值表整块怎么标？</strong>
+      你 #048-#059 把所员数值表每段都标 <span class="tag-mini c">combat</span>。我准备对伊藤/僵尸/蛇人/伊古/蛇 6 组数值表同样处理（每段 combat）。
+      <span class="recommend">推荐：照搬你的方式，每段 combat</span>
+    </li>
+    <li>
+      <strong>flag 命名风格</strong>：你 detail 里写 <code>hasGun=true</code> 用 = 等号表达式。我后续也跟这个。
+      <span class="recommend">推荐：camelCase 等号格式，跟你一致</span>
+    </li>
+    <li>
+      <strong>教团内容 #087-#099</strong>：要不要 LLM <span class="tag-mini e">expand D</span> 写得厚一点（自由发挥）？还是 <span class="tag-mini v">verbatim</span> 用原文骨架就够？
+      <span class="recommend">推荐：expand D，原作这段过于"维基条目"风，扩写后更有跑团黑书味</span>
+    </li>
+    <li>
+      <strong>真相段 #275-#279</strong>：是游戏 finale 结束后的总结卡，不该当普通 narrate。建议挂到 endingRouter 的 outro narrate 字段。
+      <span class="recommend">推荐：单独走 ending outro，不进主线 narrate</span>
+    </li>
+    <li>
+      <strong>"原文有但分散在多段"</strong>（比如 EV 电梯 #102-#103 描述同一场景）：按段标 vs 合并标？
+      <span class="recommend">推荐：按段标（你已经这么干了，保持一致）</span>
+    </li>
+  </ol>
+</section>
+
+<section>
+  <h2>七、段长度规则（你新追加）</h2>
+  <div class="summary-box">
+    每个 narrate ≤ <strong>~60 字 / 1-2 句</strong>，超过就拆页。<strong>扩写后要有足够文本量</strong>讲清 "看到什么 + 感受"，不能只甩一句。
+  </div>
+  <ul class="plan">
+    <li><strong>verbatim 段</strong>：按原文标点天然分页（句号/问号/感叹号），单段过长自动拆</li>
+    <li><strong>expand A 加感官</strong>：1 段原文骨架 → 3-4 段扩写（动作、视觉、内心、结果），每段 ≤ 60 字</li>
+    <li><strong>expand B 探索动作</strong>：每个按钮的成功 narrate 至少 3 段，给"探索的获得感"，不能只显示一句"找到 X"</li>
+    <li><strong>对话</strong>：长对话拆成多条 dialogue 行，每条 ≤ 60 字，speaker 在每行前重复出现</li>
+  </ul>
+</section>
+
+<section>
+  <h2>八、行动</h2>
+  <div class="actions">
+    <button class="btn primary" onclick="alert('回复我「开干」即可，我开始标剩下 200 段并导出给你')">👍 理解对了 · 开干</button>
+    <button class="btn" onclick="alert('回复我哪一节哪一条要改，我修订 v2 给你')">✏️ 还有要调整</button>
+  </div>
+</section>
+
+</main>
+
+</body>
+</html>

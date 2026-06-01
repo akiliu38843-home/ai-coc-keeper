@@ -13,32 +13,33 @@
     return e;
   }
 
-  function statRow(label, value) {
-    const wrap = el('div', 'cthk-card-stat');
-    wrap.appendChild(el('span', 'cthk-card-stat-name', label));
-    wrap.appendChild(el('span', 'cthk-card-stat-val', value));
-    return wrap;
+  function secHead(zh, en) {
+    const h = el('div', 'cthk-card-sec-h');
+    h.appendChild(el('span', 'cc-t', zh));
+    h.appendChild(el('span', 'cc-n', en));
+    h.appendChild(el('span', 'cc-ln'));
+    return h;
   }
 
-  function attrCell(name, value) {
-    const wrap = el('div', 'cthk-card-attr');
-    wrap.appendChild(el('span', 'cthk-card-attr-name', name));
-    wrap.appendChild(el('span', 'cthk-card-attr-val', String(value)));
-    return wrap;
-  }
-
-  function skillRow(name, value) {
-    const wrap = el('div', 'cthk-card-skill');
-    wrap.appendChild(el('span', 'cthk-card-skill-name', name));
-    wrap.appendChild(el('span', 'cthk-card-skill-val', String(value)));
-    return wrap;
-  }
-
-  function section(title, body) {
+  function section(zh, en, body) {
     const s = el('div', 'cthk-card-section');
-    s.appendChild(el('h3', null, title));
+    s.appendChild(secHead(zh, en));
     s.appendChild(body);
     return s;
+  }
+
+  function bigTile(cls, k, v) {
+    const t = el('div', 'cc-big ' + cls);
+    t.appendChild(el('span', 'cc-k', k));
+    t.appendChild(el('span', 'cc-v', v));
+    return t;
+  }
+
+  function cell(k, v, hi) {
+    const c = el('div', 'cc-cell' + (hi ? ' hi' : ''));
+    c.appendChild(el('span', 'cc-k', k));
+    c.appendChild(el('span', 'cc-v', String(v)));
+    return c;
   }
 
   function renderModalBody(modal, char) {
@@ -56,38 +57,50 @@
       return;
     }
 
-    // 身份
-    const id = el('div');
-    const gender = char.gender ? `（${char.gender}, ${char.age} 岁）` : `（${char.age} 岁）`;
-    id.appendChild(el('div', 'cthk-card-id', `${char.name} ${gender}`));
-    id.appendChild(el('div', 'cthk-card-id-sub', char.occupation));
-    modal.appendChild(section('身份', id));
+    // 身份 名牌
+    const idb = el('div', 'cthk-card-id-block');
+    idb.appendChild(el('div', 'cthk-card-kick', (char.scenarioCode || 'CASE') + ' · 探者档案'));
+    const gender = char.gender ? `（${char.gender}，${char.age} 岁）` : `（${char.age} 岁）`;
+    const idLine = el('div', 'cthk-card-id');
+    idLine.innerHTML = `${char.name} <small>${gender}</small>`;
+    idb.appendChild(idLine);
+    idb.appendChild(el('div', 'cthk-card-id-sub', char.occupation));
+    modal.appendChild(idb);
 
-    // 状态数值
-    const stats = el('div', 'cthk-card-stats');
-    stats.appendChild(statRow('HP', `${char.currentHp}/${char.maxHp}`));
-    stats.appendChild(statRow('心智度', `${char.currentSanity}/${char.maxSanity}`));
-    stats.appendChild(statRow('MP', `${char.currentMp}/${char.maxMp}`));
-    stats.appendChild(statRow('幸运', String(char.luck)));
-    if (char.movement !== undefined) stats.appendChild(statRow('移动', String(char.movement)));
-    if (char.dodge !== undefined) stats.appendChild(statRow('闪避', String(char.dodge)));
-    modal.appendChild(section('状态', stats));
+    // 状态: HP/SAN 双联大牌 + 次要四格
+    const statWrap = el('div');
+    const vital = el('div', 'cthk-card-vital');
+    vital.appendChild(bigTile('hp', 'HP 体力', `${char.currentHp}/${char.maxHp}`));
+    vital.appendChild(bigTile('san', 'SAN 心智度', `${char.currentSanity}/${char.maxSanity}`));
+    statWrap.appendChild(vital);
+    const minor = el('div', 'cthk-card-minor');
+    minor.appendChild(cell('MP', `${char.currentMp}/${char.maxMp}`));
+    minor.appendChild(cell('幸运', char.luck));
+    if (char.movement !== undefined) minor.appendChild(cell('移动', char.movement));
+    if (char.dodge !== undefined) minor.appendChild(cell('闪避', char.dodge));
+    statWrap.appendChild(minor);
+    modal.appendChild(section('状态', 'STATUS', statWrap));
 
-    // 属性 8 项
+    // 属性 8 项 (一体化网格, 高值描金)
     if (char.attributes) {
       const attrs = el('div', 'cthk-card-attrs');
       const order = ['STR', 'DEX', 'INT', 'CON', 'APP', 'POW', 'SIZ', 'EDU'];
       for (const k of order) {
-        if (char.attributes[k] !== undefined) attrs.appendChild(attrCell(k, char.attributes[k]));
+        if (char.attributes[k] !== undefined) attrs.appendChild(cell(k, char.attributes[k], char.attributes[k] >= 80));
       }
-      modal.appendChild(section('属性', attrs));
+      modal.appendChild(section('属性', 'ATTRIBUTES', attrs));
     }
 
-    // 技能 (前 N)
+    // 技能 (前 N, 双栏)
     if (Array.isArray(char.topSkills) && char.topSkills.length > 0) {
       const skills = el('div', 'cthk-card-skills');
-      for (const sk of char.topSkills) skills.appendChild(skillRow(sk.name, sk.value));
-      modal.appendChild(section('主要技能', skills));
+      for (const sk of char.topSkills) {
+        const row = el('div', 'cc-srow');
+        row.appendChild(el('span', 'cc-sk-n', sk.name));
+        row.appendChild(el('span', 'cc-sk-v', String(sk.value)));
+        skills.appendChild(row);
+      }
+      modal.appendChild(section('主要技能', 'SKILLS', skills));
     }
 
     // 条件 (临时/长期心智失常等)
@@ -95,7 +108,7 @@
       const cond = el('div');
       for (const c of char.conditions) {
         const line = el('div');
-        line.style.padding = '4px 0';
+        line.style.padding = '7px 0';
         line.style.borderBottom = '1px dashed rgba(58, 46, 28, 0.5)';
         const label = c.type === 'indef_insanity' ? '长期心智失常'
                     : c.type === 'temp_insanity'  ? '临时心智失常'
@@ -110,7 +123,7 @@
         line.style.color = '#c44537';
         cond.appendChild(line);
       }
-      modal.appendChild(section('当前状态', cond));
+      modal.appendChild(section('当前状态', 'CONDITIONS', cond));
     }
   }
 
@@ -143,7 +156,7 @@
       .catch(() => null)
       .then((char) => {
         const btn = el('button', 'cthk-card-btn');
-        btn.innerHTML = '📜 角色卡';
+        btn.innerHTML = 'DOSSIER ░ 探者';
         btn.setAttribute('aria-label', '查看角色卡');
         btn.style.display = 'none'; // 默认隐藏, 进游戏后再放出来
         document.body.appendChild(btn);

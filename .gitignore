@@ -1,6 +1,13 @@
 # 私有测试本子 — 绝不入 git
 .test-scenarios/
 
+# 由私有素材生成的预览 / 样品 (含 verbatim 段)
+docs/kohaku-v3-preview.html
+docs/annotation-expansion-sample.html
+
+# 本地备份 (B 路重构前的 character-card / userStyleSheet 原版)
+assets/_backup-pre-juansing/
+
 # WebGAL upstream clone（保留为参考，未来 fork 改造时重新评估）
 external/WebGAL/
 

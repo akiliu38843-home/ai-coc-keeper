@@ -1,0 +1,217 @@
+/* ============================================================
+ * coc-ui.css ·《卷宗》方案 B — 注入元素样式 (配合 coc-ui.js)
+ * 覆盖: 状态 HUD / 作废·崩溃全屏 / 登记角标 / 动态登记条
+ * 部署: 复制到 dist/game/coc-ui.css, post-build 注入 link (在 userStyleSheet 之后)
+ * z-index 全部 ≤ 11; HUD/角标在 intro 时由 coc-ui.js 隐藏, 不盖章节卡
+ * ========================================================== */
+
+:root {
+  --coc-ink: #cfc6b4; --coc-dim: #a89578; --coc-amber: #d9b878;
+  --coc-accent: #c44537; --coc-accent-bri: #e0533f; --coc-border: #3a2e1c;
+  --coc-mono: "Spline Sans Mono", ui-monospace, "Menlo", monospace;
+  --coc-serif: "Noto Serif SC", "Songti SC", serif;
+}
+
+/* ===== 骰检 marker 拦截时 textbox 隐身 (coc-ui.js 触发 showRoll 时套上) ===== */
+[class*="TextBox_main"].cthk-roll-marker-active {
+  visibility: hidden !important;
+}
+
+/* ===== 角色名浮层 (左侧空位, HUD 下方) =====
+ * 由 coc-ui.js 从 WebGAL .TextBox_showName 文字拷贝过来, 位置脱离 textbox 父容器. */
+.cthk-speaker {
+  position: fixed; left: 22px; bottom: 26%; z-index: 10;
+  display: flex; align-items: center; gap: .25em;
+  font-family: var(--coc-mono); font-size: 16px; font-weight: 700;
+  letter-spacing: .12em; color: var(--coc-accent-bri);
+  text-transform: uppercase; pointer-events: none;
+  text-shadow: 0 0 12px rgba(196,69,55,.4), 0 1px 3px rgba(0,0,0,.8);
+  background: linear-gradient(180deg, rgba(14,12,10,.92), rgba(7,6,5,.97));
+  padding: .35em .9em;
+  border-left: 3px solid var(--coc-accent);
+  border-top: 1px solid rgba(207,198,180,.18);
+  max-width: 280px; line-height: 1.2;
+}
+.cthk-speaker[hidden] { display: none; }
+.cthk-speaker-bracket { opacity: .55; }
+.cthk-speaker-name { white-space: nowrap; }
+
+/* ===== 状态 HUD (左上, 可收起) ===== */
+.cthk-hud {
+  position: fixed; top: 64px; left: 28px; z-index: 11;
+  display: flex; flex-direction: column; gap: 8px; font-family: var(--coc-serif);
+  transition: transform .35s cubic-bezier(.4,0,.2,1), opacity .35s ease;
+}
+.cthk-hud.collapsed { transform: translateX(calc(-100% + 30px)); }
+.cthk-hud[hidden] { display: none; }
+.cthk-hud-stat { display: flex; align-items: center; gap: 9px; }
+.cthk-hud-label { font-family: var(--coc-mono); font-size: 12px; letter-spacing: .1em;
+  color: var(--coc-dim); width: 3.4em; text-align: right; }
+.cthk-hud-bar { position: relative; width: 150px; height: 9px;
+  background: rgba(8,6,4,.7); border: 1px solid rgba(207,198,180,.3); overflow: hidden; }
+.cthk-hud-fill { position: absolute; inset: 0; transform-origin: left;
+  transition: transform .8s cubic-bezier(.3,0,.2,1); }
+.cthk-hud-fill.hp  { background: linear-gradient(90deg, #8b2c1f, #c44537); }
+.cthk-hud-fill.san { background: linear-gradient(90deg, #6c7a55, var(--coc-amber)); }
+.cthk-hud-num { font-family: var(--coc-mono); font-size: 13px; color: var(--coc-ink); min-width: 3.6em; }
+.cthk-hud-toggle { position: absolute; top: -4px; right: -26px; width: 22px; height: 22px;
+  background: transparent; border: 1px solid var(--coc-border); color: var(--coc-dim);
+  cursor: pointer; font-family: var(--coc-mono); font-size: 11px; line-height: 1; }
+.cthk-hud-toggle:hover { border-color: var(--coc-accent); color: #fff; }
+.cthk-hud-stat.flash-dmg { animation: cocHudFlash .6s ease; }
+@keyframes cocHudFlash { 0%,100%{ filter:none; } 30%{ filter: brightness(1.8) drop-shadow(0 0 6px #c44537); } }
+/* 危急: 值过低持续告警 */
+.cthk-hud-stat.low .cthk-hud-fill { animation: cocStatDanger 1.5s ease-in-out infinite; }
+@keyframes cocStatDanger { 0%,100%{ filter:none; } 50%{ filter: brightness(1.55) drop-shadow(0 0 5px currentColor); } }
+.cthk-hud-stat.low .cthk-hud-bar { border-color: rgba(196,69,55,.7); box-shadow: 0 0 9px rgba(196,69,55,.3); }
+.cthk-hud-stat[data-stat="hp"].low .cthk-hud-num { color: #e0533f; }
+.cthk-hud-stat[data-stat="san"].low .cthk-hud-num { color: #d9b878; }
+.cthk-hud-stat[data-stat="san"].low .cthk-hud-bar { border-color: rgba(184,149,89,.7); box-shadow: 0 0 9px rgba(184,149,89,.3); }
+
+/* ===== 登记条 (动态, 注入到 textbox 内) ===== */
+.tb-manifest {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  position: absolute; top: 0; left: 0; right: 0; height: 2.2em; z-index: 3;
+  padding: 0 1.4em; font-family: var(--coc-mono); font-size: .62em;
+  letter-spacing: .26em; color: var(--coc-ink); text-transform: uppercase;
+  background: repeating-linear-gradient(45deg,#1a1410 0 8px,#15100c 8px 16px);
+  border-bottom: 1px solid var(--coc-accent); white-space: nowrap; overflow: hidden;
+}
+.tb-manifest .m-l { color: var(--coc-accent-bri); }
+.tb-manifest .m-r { color: var(--coc-ink); opacity: .8; letter-spacing: .12em;
+  overflow: hidden; text-overflow: ellipsis; }
+
+/* ===== 登记角标 + 档案编号印 (注入, 全屏 pointer-events none) ===== */
+.cthk-regmark { position: fixed; inset: 0; z-index: 5; pointer-events: none; }
+.cthk-regmark[hidden] { display: none; }
+.cthk-regmark .rm { position: absolute; width: 18px; height: 18px; border: 0 solid rgba(207,198,180,.35); }
+.cthk-regmark .rm.tl { top: 22px; left: 22px; border-top-width: 1px; border-left-width: 1px; }
+.cthk-regmark .rm.tr { top: 22px; right: 22px; border-top-width: 1px; border-right-width: 1px; }
+.cthk-regmark .rm.bl { bottom: 22px; left: 22px; border-bottom-width: 1px; border-left-width: 1px; }
+.cthk-regmark .rm.br { bottom: 22px; right: 22px; border-bottom-width: 1px; border-right-width: 1px; }
+.cthk-regmark .rm-id { position: absolute; top: 26px; right: 50px;
+  font-family: var(--coc-mono); font-size: 11px; letter-spacing: .22em;
+  color: rgba(207,198,180,.4); text-transform: uppercase; }
+
+/* ===== 作废 / 崩溃 全屏 (z-index 11) ===== */
+.cthk-void {
+  position: fixed; inset: 0; z-index: 11;
+  display: flex; align-items: center; justify-content: center;
+  background:
+    repeating-linear-gradient(0deg, transparent 0 3px, rgba(196,69,55,.03) 3px 4px),
+    radial-gradient(70% 70% at 50% 45%, #160606 0%, #000 82%);
+  opacity: 0; pointer-events: none; transition: opacity .7s ease;
+}
+.cthk-void.show { opacity: 1; pointer-events: auto; }
+.void-inner { display: flex; flex-direction: column; align-items: center; gap: 18px; text-align: center; padding: 6vw; }
+.void-kicker { font-family: var(--coc-mono); color: var(--coc-dim); letter-spacing: .3em;
+  font-size: 14px; text-transform: uppercase; }
+.void-stamp { font-family: var(--coc-serif); font-weight: 700; color: var(--coc-accent-bri);
+  font-size: clamp(60px, 12vw, 180px); line-height: .9; letter-spacing: .1em; text-indent: .1em;
+  border: 7px double var(--coc-accent-bri); padding: 8px 40px; transform: rotate(-7deg);
+  text-shadow: 0 0 40px rgba(196,69,55,.5);
+  box-shadow: 0 0 50px rgba(196,69,55,.25), inset 0 0 30px rgba(196,69,55,.15); }
+.void-title { font-family: var(--coc-serif); color: #fff; font-size: 32px; letter-spacing: .12em; margin-top: 16px; }
+.void-reason { font-family: var(--coc-serif); color: var(--coc-dim); font-size: 20px; letter-spacing: .06em; }
+.void-foot { font-family: var(--coc-mono); color: var(--coc-accent); font-size: 14px; letter-spacing: .26em; text-transform: uppercase; margin-top: 18px; }
+/* 印章砸入 (仅死亡; 失常保留拖动) */
+.cthk-void[data-kind="death"].show .void-stamp { animation: cocVoidSlam .6s cubic-bezier(.2,.9,.3,1.1) both; }
+@keyframes cocVoidSlam { 0%{transform:scale(1.85) rotate(-12deg)} 55%{transform:scale(.93) rotate(-5deg)} 100%{transform:scale(1) rotate(-7deg)} }
+/* 心智崩溃 → 病态琥珀 */
+.cthk-void[data-kind="insanity"] .void-stamp { color: var(--coc-amber); border-color: var(--coc-amber);
+  text-shadow: 0 0 40px rgba(184,149,89,.5);
+  box-shadow: 0 0 50px rgba(184,149,89,.25), inset 0 0 30px rgba(184,149,89,.15);
+  animation: cocVoidJitter 3s steps(1) infinite; }
+.cthk-void[data-kind="insanity"] .void-foot { color: var(--coc-amber); }
+@keyframes cocVoidJitter { 0%,90%,100%{ transform: rotate(-7deg);} 92%{ transform: rotate(-6deg) translateX(2px);} 94%{ transform: rotate(-8deg) translateX(-2px);} }
+
+/* ===== 骰检中央揭示 (z-index 11; builder 调 CocUI.showRoll 触发) ===== */
+.cthk-roll {
+  position: fixed; inset: 0; z-index: 11;
+  display: flex; align-items: center; justify-content: center;
+  background:
+    repeating-linear-gradient(45deg, rgba(196,69,55,.05) 0 10px, transparent 10px 20px),
+    radial-gradient(58% 58% at 50% 44%, rgba(14,6,5,.62) 0%, rgba(2,2,2,.88) 78%);
+  opacity: 0; pointer-events: none; transition: opacity .4s ease;
+}
+.cthk-roll.show { opacity: 1; pointer-events: auto; }
+.cthk-roll .roll-card { position: relative; z-index: 1;
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  gap: clamp(10px,1.7vw,22px); padding: clamp(20px,4vw,52px);
+  transform: scale(.95); transition: transform .45s cubic-bezier(.2,.8,.2,1); }
+.cthk-roll.show .roll-card { transform: none; }
+.roll-card::before { content: 'ROLL \2591 \5224\5b9a'; order: -1;
+  font-family: var(--coc-mono); color: var(--coc-accent); opacity: .7;
+  letter-spacing: .3em; font-size: clamp(9px,1.1vw,14px); text-transform: uppercase; }
+.roll-skill { font-family: var(--coc-mono); text-transform: uppercase;
+  letter-spacing: .34em; font-size: clamp(13px,1.7vw,22px); color: var(--coc-dim); }
+.roll-dice { display: none; gap: clamp(10px,1.6vw,20px); align-items: center; justify-content: center; }
+.cthk-roll.figures-on .roll-dice { display: flex; }
+.roll-dice .die { width: clamp(26px,3.6vw,48px); height: auto; color: var(--coc-dim);
+  filter: drop-shadow(0 3px 6px rgba(0,0,0,.5)); transition: color .3s ease; }
+.cthk-roll.rolling .die { animation: cocDieTumble .55s ease-in-out infinite; }
+.cthk-roll.rolling .die:nth-child(2) { animation-delay: -.27s; }
+@keyframes cocDieTumble { 0%{transform:rotate(0) translateY(0)} 25%{transform:rotate(-20deg) translateY(-7px)} 50%{transform:rotate(14deg) translateY(3px)} 75%{transform:rotate(-9deg) translateY(-4px)} 100%{transform:rotate(0) translateY(0)} }
+.cthk-roll.stamped .die { animation: cocDieSettle .45s cubic-bezier(.2,.9,.3,1.3) both; }
+.cthk-roll.stamped .die:nth-child(2) { animation-delay: .06s; }
+@keyframes cocDieSettle { 0%{transform:scale(1.18) rotate(-6deg)} 60%{transform:scale(.93) rotate(3deg)} 100%{transform:scale(1) rotate(0)} }
+.cthk-roll.stamped[data-outcome*="\6210\529f"] .die { color: var(--coc-amber); }
+.cthk-roll.stamped[data-outcome*="\5931\8d25"] .die { color: var(--coc-accent-bri); }
+.roll-figures { display: none; align-items: baseline; justify-content: center;
+  gap: clamp(8px,1.5vw,20px); font-family: var(--coc-mono); line-height: .9; }
+.cthk-roll.figures-on .roll-figures { display: flex; }
+.roll-roll { font-size: clamp(56px,12vw,168px); font-weight: 700; color: #fff;
+  font-variant-numeric: tabular-nums; text-shadow: 0 4px 30px rgba(0,0,0,.6); }
+.roll-vs { font-size: clamp(24px,4vw,58px); color: var(--coc-dim); opacity: .45; }
+.roll-target { font-size: clamp(32px,6vw,84px); color: var(--coc-dim); font-variant-numeric: tabular-nums; opacity: .8; }
+.roll-outcome { font-family: var(--coc-serif); font-weight: 700;
+  font-size: clamp(22px,3.6vw,54px); letter-spacing: .14em;
+  padding: clamp(4px,.9vw,12px) clamp(18px,3vw,40px); border: 3px double currentColor;
+  color: var(--coc-ink); opacity: 0; transform: rotate(-5deg);
+  box-shadow: 0 0 30px rgba(0,0,0,.55), inset 0 0 22px rgba(0,0,0,.4); }
+.cthk-roll.stamped .roll-outcome { opacity: 1; animation: cocStampSlam .5s cubic-bezier(.2,.9,.3,1.15) both; }
+@keyframes cocStampSlam { 0%{transform:scale(1.7) rotate(-9deg)} 55%{transform:scale(.9) rotate(-3deg)} 100%{transform:scale(1) rotate(-5deg)} }
+.cthk-roll[data-outcome*="\6210\529f"] .roll-outcome { color: var(--coc-amber); }
+.cthk-roll[data-outcome*="\5931\8d25"] .roll-outcome { color: var(--coc-accent-bri); }
+.cthk-roll[data-outcome*="\5927\6210\529f"] .roll-outcome { color: #e8c97a; }
+.cthk-roll[data-outcome*="\5927\5931\8d25"] .roll-outcome { color: #ff5640; }
+.cthk-roll.stamped[data-outcome*="\6210\529f"] .roll-roll { color: var(--coc-amber); }
+.cthk-roll.stamped[data-outcome*="\5931\8d25"] .roll-roll { color: var(--coc-accent-bri); }
+.roll-effects { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; opacity: 0; }
+.cthk-roll.stamped .roll-effects { opacity: 1; }
+.roll-fx { display: inline-flex; align-items: baseline; gap: 7px; font-family: var(--coc-mono);
+  font-size: clamp(11px,1.3vw,16px); padding: 4px 13px; border: 1px solid var(--coc-border);
+  color: var(--coc-dim); background: #100d0a; text-transform: uppercase; }
+.roll-fx .fx-name { color: var(--coc-ink); }
+.roll-fx .fx-delta { color: var(--coc-accent-bri); font-weight: 600; }
+/* 暴击演出 */
+.roll-burst, .roll-ring { position: absolute; left: 50%; top: 46%; transform: translate(-50%,-50%);
+  pointer-events: none; opacity: 0; z-index: 0; }
+.roll-burst { width: min(72vw,920px); height: min(72vw,920px); border-radius: 50%; }
+.roll-ring { width: 40px; height: 40px; border-radius: 50%; }
+.cthk-roll.crit-success .roll-burst { background: radial-gradient(circle, rgba(232,201,122,.5) 0%, rgba(217,184,120,.16) 32%, transparent 62%); animation: cocBurst 1.1s ease-out forwards; }
+.cthk-roll.crit-success .roll-burst::before { content: ''; position: absolute; inset: 0; border-radius: 50%;
+  background: repeating-conic-gradient(from 0deg, rgba(232,201,122,0) 0 8deg, rgba(232,201,122,.22) 8deg 9deg);
+  -webkit-mask: radial-gradient(circle, transparent 28%, #000 42%, transparent 72%);
+  mask: radial-gradient(circle, transparent 28%, #000 42%, transparent 72%); animation: cocRays 1.2s ease-out forwards; }
+.cthk-roll.crit-success .roll-ring { border: 2px solid rgba(232,201,122,.85); animation: cocShock 1s cubic-bezier(.2,.7,.3,1) forwards; }
+.cthk-roll.crit-success .roll-roll { text-shadow: 0 0 30px rgba(232,201,122,.85), 0 4px 30px rgba(0,0,0,.6); }
+.cthk-roll.crit-success .roll-outcome { box-shadow: 0 0 44px rgba(232,201,122,.6), inset 0 0 26px rgba(232,201,122,.2); }
+.cthk-roll.crit-success .die { filter: drop-shadow(0 0 11px rgba(232,201,122,.95)); }
+@keyframes cocBurst { 0%{opacity:0; transform:translate(-50%,-50%) scale(.42)} 18%{opacity:1} 100%{opacity:0; transform:translate(-50%,-50%) scale(1.28)} }
+@keyframes cocRays { 0%{opacity:0; transform:rotate(0) scale(.6)} 20%{opacity:.9} 100%{opacity:0; transform:rotate(42deg) scale(1.3)} }
+@keyframes cocShock { 0%{opacity:.9; width:40px; height:40px} 100%{opacity:0; width:min(62vw,780px); height:min(62vw,780px)} }
+.cthk-roll.crit-fail .roll-burst { background: radial-gradient(circle, rgba(255,60,40,.42) 0%, rgba(140,20,15,.2) 36%, transparent 66%); animation: cocBurst .9s ease-out forwards; }
+.cthk-roll.crit-fail .roll-card { animation: cocShake .5s cubic-bezier(.36,.07,.19,.97); }
+.cthk-roll.crit-fail .roll-roll { animation: cocGlitch .42s steps(2) 2; }
+.cthk-roll.crit-fail .roll-outcome { box-shadow: 0 0 38px rgba(255,60,40,.55), inset 0 0 24px rgba(255,60,40,.25); }
+.cthk-roll.crit-fail .die { filter: drop-shadow(0 0 10px rgba(255,60,40,.9)); }
+@keyframes cocShake { 10%{transform:translate(-4px,1px) rotate(-.5deg)} 20%{transform:translate(5px,-2px) rotate(.6deg)} 30%{transform:translate(-6px,2px) rotate(-.6deg)} 40%{transform:translate(6px,-1px) rotate(.5deg)} 50%{transform:translate(-4px,2px)} 60%{transform:translate(4px,-2px)} 70%{transform:translate(-2px,1px)} 100%{transform:none} }
+@keyframes cocGlitch { 0%,100%{text-shadow:0 4px 30px rgba(0,0,0,.6); transform:translateX(0)} 30%{text-shadow:-3px 0 rgba(255,60,40,.9),3px 0 rgba(70,120,150,.7); transform:translateX(-2px)} 60%{text-shadow:3px 0 rgba(255,60,40,.9),-3px 0 rgba(70,120,150,.7); transform:translateX(2px)} }
+
+@media (prefers-reduced-motion: reduce) {
+  .cthk-void[data-kind="insanity"] .void-stamp { animation: none; }
+  .cthk-hud-fill { transition: none; }
+  .cthk-hud-stat.low .cthk-hud-fill, .cthk-roll .die, .cthk-roll.stamped .roll-outcome,
+  .cthk-roll.crit-fail .roll-card, .roll-burst, .roll-ring, .cthk-void[data-kind="death"].show .void-stamp { animation: none !important; }
+}
