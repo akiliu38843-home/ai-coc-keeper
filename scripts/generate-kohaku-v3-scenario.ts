@@ -210,7 +210,10 @@ async function main() {
   for (const scene of v2.scenes) {
     const lines = sceneNarrate.get(scene.id);
     if (lines && lines.length > 0) {
-      scene.description = lines.join('\n\n');
+      const v3Text = lines.join('\n\n');
+      scene.description = v3Text;
+      // builder 的 pickPlaceholderNarrate 优先用 originalText, 必须同时覆盖
+      scene.originalText = v3Text;
       updated++;
     }
     const inSceneActions = sceneInScene.get(scene.id);
