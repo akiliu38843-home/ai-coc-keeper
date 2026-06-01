@@ -1,6 +1,6 @@
 {
   "name": "ai-coc-keeper",
-  "version": "0.0.1",
+  "version": "0.3.0",
   "description": "AI-powered Keeper for solo Call of Cthulhu-style scenarios with galgame UI",
   "type": "module",
   "private": true,
